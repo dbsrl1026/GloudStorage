@@ -1,2 +1,0 @@
-from .document_kafka_messsage import DocumentKafkaMessage
-from .search_result import SearchResult

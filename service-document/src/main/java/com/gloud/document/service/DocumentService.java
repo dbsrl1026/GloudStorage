@@ -19,9 +19,9 @@ import java.util.List;
 public interface DocumentService {
 
 
-    String uploadFile(MultipartFile file, String email);
+    String uploadFile(MultipartFile file, Long directoryId, String email);
 
-    List<UploadResult> uploadMultipleFiles(List<MultipartFile> files, String email);
+    List<UploadResult> uploadMultipleFiles(List<MultipartFile> files, Long directoryId, String email);
 
     Page<MetadataDto> getDocuments(String email,int page, int size, String sortBy, String direction,
                                    ProcessingStatus status, String contentType,
@@ -40,4 +40,8 @@ public interface DocumentService {
     Metadata getMetadata(Long metadataId);
 
     ResponseEntity<String> retryVectorDB(Long metadataId, String email);
+
+    List<DocumentDetailDto> getDetailsByMetadataIds(List<Long> metadataIds, String email);
+
+    List<MetadataDto> searchDocumentsByTitle(String email, String query);
 }

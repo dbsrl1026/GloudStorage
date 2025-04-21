@@ -1,11 +1,13 @@
 package com.gloud.document.service;
 
 import com.gloud.document.dto.*;
+import com.gloud.document.entity.Directory;
 import com.gloud.document.entity.Metadata;
 import com.gloud.document.enums.ContentType;
 import com.gloud.document.enums.ProcessingStatus;
 import com.gloud.document.kafka.DocumentKafkaProducer;
 import com.gloud.document.minio.MinioProperties;
+import com.gloud.document.repository.DirectoryRepository;
 import com.gloud.document.repository.MetadataRepository;
 import com.gloud.document.util.DocumentToPdfConverter;
 import com.gloud.document.util.TextExtractionUtil;
@@ -33,6 +35,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.lang.invoke.MethodType;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
@@ -51,7 +54,9 @@ public class DocumentServiceImpl implements DocumentService {
     private final MinioClient minioClient;
     private final MinioProperties properties;
     private final MetadataRepository metadataRepository;
+    private final DirectoryRepository directoryRepository;
     private final DocumentKafkaProducer documentKafkaProducer;
+
 
     private static final int MAX_UPLOAD_COUNT = 20;
 
@@ -61,10 +66,16 @@ public class DocumentServiceImpl implements DocumentService {
     }
 
     @Override
-    public String uploadFile(MultipartFile file, String email) {
+    public String uploadFile(MultipartFile file, Long directoryId, String email) {
+        Directory directory = null;
+        if (directoryId != null) {
+            directory = directoryRepository.findById(directoryId)
+                    .orElseThrow(() -> new IllegalArgumentException("Directory not found"));
+        }
         LocalDate now = LocalDate.now();
         String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-        String objectName = String.format("documents/%s/%d/%02d/%s", email, now.getYear(), now.getMonthValue(), fileName);
+//        String objectName = String.format("documents/%s/%d/%02d/%s", email, now.getYear(), now.getMonthValue(), fileName);
+        String objectName = String.format("documents/%s/%d/%s", email, directoryId, fileName);
         File previewPdf = null;
         String previewObjectName = null;
 
@@ -110,6 +121,7 @@ public class DocumentServiceImpl implements DocumentService {
                     .filePath(objectName)
                     .previewPath(previewObjectName)
                     .contentType(contentType)
+                    .directory(directory)
                     .uploaderEmail(email)
                     .processingStatus(ProcessingStatus.PROCESSING)
                     .build();
@@ -127,9 +139,10 @@ public class DocumentServiceImpl implements DocumentService {
                         .textContent(text)
                         .uploadTime(metadata.getUploadTime().format(formatter))
                         .build();
-                documentKafkaProducer.publish(message);
+                documentKafkaProducer.uploadPublish(message);
             } catch (Exception e) {
                 log.warn("Kafka 메시지 발행 또는 텍스트 추출 실패: {}", e.getMessage());
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
             }
 
             return objectName;
@@ -160,7 +173,7 @@ public class DocumentServiceImpl implements DocumentService {
     }
 
     @Override
-    public List<UploadResult> uploadMultipleFiles(List<MultipartFile> files, String email) {
+    public List<UploadResult> uploadMultipleFiles(List<MultipartFile> files, Long directoryId, String email) {
         if (files == null || files.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No files provided.");
         }
@@ -172,7 +185,7 @@ public class DocumentServiceImpl implements DocumentService {
         List<UploadResult> uploaded = new ArrayList<>();
         for (MultipartFile file : files) {
             try {
-                String path = uploadFile(file, email);
+                String path = uploadFile(file, directoryId, email);
                 uploaded.add(UploadResult.builder()
                         .originalFilename(file.getOriginalFilename())
                         .success(true)
@@ -267,6 +280,8 @@ public class DocumentServiceImpl implements DocumentService {
         } catch (Exception e) {
             log.warn("MinIO deletion failed for metadataId {}: {}", metadataId, e.getMessage());
         }
+
+        documentKafkaProducer.deletePublish(List.of(metadataId));
     }
 
     @Override
@@ -290,6 +305,7 @@ public class DocumentServiceImpl implements DocumentService {
                 successIds.add(id);
             } catch (Exception e) {
                 failed.add(new FailedDeleteInfo(id, "RDB deletion failed: " + e.getMessage()));
+                log.warn("RDB deletion failed: {}", e.getMessage());
                 continue;
             }
 
@@ -314,6 +330,8 @@ public class DocumentServiceImpl implements DocumentService {
                 log.warn("MinIO deletion failed for metadataId {}: {}", id, e.getMessage());
             }
         }
+
+        documentKafkaProducer.deletePublish(metadataIds);
 
         return DeleteResultDto.builder()
                 .successIds(successIds)
@@ -352,8 +370,37 @@ public class DocumentServiceImpl implements DocumentService {
                 .contentType(metadata.getContentType().name())
                 .uploadTime(metadata.getUploadTime())
                 .filePath(metadata.getFilePath())
+                .directoryId(metadata.getDirectory() != null ? metadata.getDirectory().getDirectoryId() : null)
                 .previewPath(previewUrl)
                 .build();
+    }
+
+
+    @Override
+    public List<DocumentDetailDto> getDetailsByMetadataIds(List<Long> ids, String email) {
+        List<Metadata> metadatas = metadataRepository.findAllById(ids);
+        return metadatas.stream()
+                .filter(m -> m.getUploaderEmail().equals(email))
+                .map(m -> {
+                    // 기존 getDocumentDetail 참고해 텍스트 요약 또는 preview 링크 포함
+                    return DocumentDetailDto.builder()
+                            .originalFilename(m.getOriginalFilename())
+                            .contentType(m.getContentType().name())
+                            .uploadTime(m.getUploadTime())
+                            .filePath(m.getFilePath())
+                            .directoryId(m.getDirectory() != null ? m.getDirectory().getDirectoryId() : null)
+                            .previewPath(m.getPreviewPath())
+                            .build();
+                })
+                .toList();
+    }
+
+    @Override
+    public List<MetadataDto> searchDocumentsByTitle(String email, String query) {
+        List<Metadata> results = metadataRepository.searchByTitleLike(email, query);
+        return results.stream()
+                .map(MetadataDto::fromEntity)
+                .toList();
     }
 
     @Override
@@ -439,13 +486,14 @@ public class DocumentServiceImpl implements DocumentService {
                     .uploadTime(metadata.getUploadTime().format(formatter))
                     .build();
 
-            documentKafkaProducer.publish(message);
+            documentKafkaProducer.uploadPublish(message);
             updateProcessingStatus(metadataId, ProcessingStatus.PROCESSING);
             return ResponseEntity.ok("Retry successful.");
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Retry failed: " + e.getMessage());
         }
     }
+
 
     @Override
     public Metadata getMetadata(Long metadataId) {

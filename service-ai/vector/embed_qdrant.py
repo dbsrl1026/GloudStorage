@@ -5,7 +5,10 @@ from qdrant_client import QdrantClient
 from qdrant_client.http.models import Distance, VectorParams
 from config import settings
 from my_kafka.producer import safe_send_status
-from .hybrid_search_integration import build_bm25_index
+from vector.hybrid_search_integration import build_bm25_index
+from utils.logging_util import LoggingUtil
+
+logger = LoggingUtil.get_logger(__name__)
 
 client = QdrantClient(
     host=settings.qdrant_host,
@@ -18,12 +21,8 @@ collection_name = settings.qdrant_collection_name
 if collection_name not in [col.name for col in client.get_collections().collections]:
     client.create_collection(
         collection_name=collection_name,
-        vectors_config=VectorParams(size=1536, distance=Distance.COSINE)
+        vectors_config=VectorParams(size=3072, distance=Distance.COSINE)
     )
-client.recreate_collection(
-    collection_name=collection_name,
-    vectors_config=VectorParams(size=1536, distance=Distance.COSINE)
-)
 
 embeddings = OpenAIEmbeddings(
     openai_api_key=settings.openai_api_key,
@@ -32,8 +31,10 @@ embeddings = OpenAIEmbeddings(
 
 
 def index_text_to_qdrant(text: str, metadata: dict):
-    print("📦 Metadata being passed to Qdrant:")
-    print(metadata)
+    # 제목(파일명)을 본문 앞에 추가하여 벡터화 정확도 향상
+    title = metadata.get("filename", "").replace("_", " ").replace("-", " ").split(".")[0]
+    text = f"[제목: {title}]\n{text}"
+
     splitter = RecursiveCharacterTextSplitter(chunk_size=400, chunk_overlap=80)
     chunks = splitter.create_documents([text], metadatas=[metadata])
 
@@ -44,14 +45,6 @@ def index_text_to_qdrant(text: str, metadata: dict):
             embeddings=embeddings,
         )
         qdrant.add_documents(chunks)
-
-        # 가장 먼저 확인: Qdrant에서 직접 payload 구조 보기
-        # points, _ = client.scroll(collection_name="documents", limit=5, with_payload=True)
-        #
-        # for i, point in enumerate(points):
-        #     print(f"\n[Point {i}]")
-        #     print("ID:", point.id)
-        #     print("Payload:", point.payload)
 
         documents = [
             {
@@ -65,5 +58,5 @@ def index_text_to_qdrant(text: str, metadata: dict):
         safe_send_status(metadata["document_id"], "COMPLETED")
 
     except Exception as e:
-        print(f"[Error] Failed to index document: {e}")
+        logger.error(f"[Error] Failed to index document: {e}")
         safe_send_status(metadata["document_id"], "FAILED")

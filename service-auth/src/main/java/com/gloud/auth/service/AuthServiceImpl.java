@@ -9,24 +9,20 @@ import com.gloud.auth.repository.MemberRepository;
 import com.gloud.auth.repository.RedisTokenRepository;
 import com.gloud.auth.util.JwtUtil;
 import io.jsonwebtoken.JwtException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private MemberRepository memberRepository;
-
-    @Autowired
-    private JwtUtil jwtUtil;
-
-    @Autowired
-    private RedisTokenRepository redisTokenRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final MemberRepository memberRepository;
+    private final JwtUtil jwtUtil;
+    private final RedisTokenRepository redisTokenRepository;
 
     @Override
     public void Register(MemberDto memberDto) {

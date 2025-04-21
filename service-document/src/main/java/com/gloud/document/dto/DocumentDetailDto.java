@@ -15,4 +15,5 @@ public class DocumentDetailDto {
     private LocalDateTime uploadTime;
     private String filePath;
     private String previewPath;
+    private Long directoryId;
 }

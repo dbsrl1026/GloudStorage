@@ -13,7 +13,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.lang.reflect.Field;
-import java.nio.file.AccessDeniedException;
+
 
 @Aspect
 @Component
@@ -44,7 +44,7 @@ public class EmailValidationAspect {
             // 2-1. email 파라미터 직접 일치
             if (paramName.equals(validateEmailClaim.paramName()) && value instanceof String) {
                 if (!emailFromToken.equals(value)) {
-                    throw new AccessDeniedException("email from token doesn't match with email token.");
+                    throw new IllegalArgumentException("email from token doesn't match with email token.");
                 }
                 matchFound = true;
                 break;
@@ -58,7 +58,7 @@ public class EmailValidationAspect {
                     Object innerEmail = emailField.get(value);
 
                     if (innerEmail instanceof String && !emailFromToken.equals(innerEmail)) {
-                        throw new AccessDeniedException("email from token doesn't match with email token.");
+                        throw new IllegalArgumentException("email from token doesn't match with email token.");
                     }
                     matchFound = true;
                     break;

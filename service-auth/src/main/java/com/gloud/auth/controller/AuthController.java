@@ -4,6 +4,7 @@ package com.gloud.auth.controller;
 import com.gloud.auth.dto.MemberDto;
 import com.gloud.auth.dto.TokenDto;
 import com.gloud.auth.service.AuthService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,10 +20,10 @@ import java.util.Collection;
 @Slf4j
 @RestController
 @RequestMapping("/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
-    @Autowired
-    private AuthService authService;
+    private final AuthService authService;
 
     @PostMapping("/register")
     public ResponseEntity<String> Register(@RequestBody MemberDto memberDto) {

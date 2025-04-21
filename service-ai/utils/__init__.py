@@ -1,1 +1,0 @@
-from .jwt import verify_email_from_token

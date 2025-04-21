@@ -52,6 +52,10 @@ public class Metadata {
     @Column(name = "processing_status", nullable = false, length = 16)
     private ProcessingStatus processingStatus;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "directory_id")
+    private Directory directory;
+
     @PrePersist
     protected void onCreate() {
         if (this.uploadTime == null) {

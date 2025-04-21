@@ -1,8 +1,15 @@
 package com.gloud.document.kafka;
 
+/**
+ * Kafka listener for processing document completion events.
+ * This listener supports partition-based parallelism by allowing multiple consumer instances.
+ *
+ * To enable multiple consumer instances, configure the following in application.yml or application.properties:
+ * spring.kafka.listener.concurrency=3
+ */
+
 import com.gloud.document.dto.DocumentStatusUpdateMessage;
 import com.gloud.document.entity.Metadata;
-import com.gloud.document.enums.ProcessingStatus;
 
 import com.gloud.document.service.DocumentService;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +25,11 @@ public class DocumentKafkaListener {
 
     private final DocumentService documentService;
 
-    @KafkaListener(topics = "document.completed", groupId = "document-status-handler")
+    @KafkaListener(
+        topics = "document.completed",
+        groupId = "document-status-handler"
+        // No need to manually specify concurrency here; configured globally via application properties
+    )
     public void handleDocumentCompleted(DocumentStatusUpdateMessage message, Acknowledgment ack) {
         try {
             log.info("Received document.completed event: metadataId={} -> status={}", message.getMetadataId(), message.getStatus());

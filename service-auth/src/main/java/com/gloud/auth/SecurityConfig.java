@@ -147,6 +147,7 @@ public class SecurityConfig {
 
 
         configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost*"));
+        configuration.addAllowedOrigin(CorsConfiguration.ALL);
 //        configuration.setAllowedOriginPatterns(corsPath);                 //마지막으로 설정된 setAllowedOriginPatterns 만 적용 TODO : 완성하고 주석풀기
         configuration.setAllowedMethods(Collections.singletonList("*"));    // POST, GET, PUT ,DELETE 등 모든 메서드 허용
         configuration.setAllowCredentials(true);                            // 인증 정보 (쿠키, 인증 헤더 등)를 포함한 요청을 허용

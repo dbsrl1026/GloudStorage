@@ -1,8 +1,8 @@
 from pydantic import BaseModel
-from datetime import datetime
+from typing import Optional
 
 class SearchResult(BaseModel):
     document_id: int
     filename: str
     preview: str
-    similarity: float
+    similarity: Optional[float] = 1.0

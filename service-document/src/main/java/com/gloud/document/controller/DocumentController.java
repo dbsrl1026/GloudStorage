@@ -35,9 +35,10 @@ public class DocumentController {
     @PostMapping("/upload")
     public ResponseEntity<String> uploadFile(
             @RequestParam("file") MultipartFile file,
+            @RequestParam(required = false) Long directoryId,
             @RequestParam("email") String email,
             @RequestHeader("Authorization") String token) {
-        String objectName = documentService.uploadFile(file, email);
+        String objectName = documentService.uploadFile(file, directoryId, email);
         return ResponseEntity.ok("Uploaded: " + objectName);
     }
 
@@ -45,9 +46,10 @@ public class DocumentController {
     @PostMapping("/upload/multiple")
     public ResponseEntity<List<UploadResult>> uploadMultipleFiles(
             @RequestParam("files") List<MultipartFile> files,
+            @RequestParam(required = false) Long directoryId,
             @RequestParam("email") String email) {
 
-        List<UploadResult> uploadResults = documentService.uploadMultipleFiles(files, email);
+        List<UploadResult> uploadResults = documentService.uploadMultipleFiles(files, directoryId, email);
         return ResponseEntity.ok(uploadResults);
     }
 
@@ -95,6 +97,22 @@ public class DocumentController {
                                                                @RequestParam String email) {
         DocumentDetailDto dto = documentService.getDocumentDetail(metadataId, email);
         return ResponseEntity.ok(dto);
+    }
+
+    @PostMapping("/details")
+    @ValidateEmailClaim
+    public ResponseEntity<List<DocumentDetailDto>> getMultipleDetails(
+            @RequestBody List<Long> metadataIds,
+            @RequestParam String email) {
+        return ResponseEntity.ok(documentService.getDetailsByMetadataIds(metadataIds, email));
+    }
+
+    @GetMapping("/search")
+    @ValidateEmailClaim
+    public ResponseEntity<List<MetadataDto>> searchDocuments(
+            @RequestParam String email,
+            @RequestParam String query) {
+        return ResponseEntity.ok(documentService.searchDocumentsByTitle(email, query));
     }
 
     @GetMapping("/{metadataId}/download")

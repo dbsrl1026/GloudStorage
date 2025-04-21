@@ -10,6 +10,7 @@ import com.gloud.auth.security.social.GoogleOauth;
 import com.gloud.auth.security.social.KakaoOauth;
 import com.gloud.auth.security.social.NaverOauth;
 import com.gloud.auth.security.social.Oauth;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
@@ -24,12 +25,11 @@ import java.util.Map;
 
 
 @Service
+@RequiredArgsConstructor
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
-    @Autowired
-    private MemberRepository memberRepository;
 
-    @Autowired
-    private OauthTokenRepository oauthTokenRepository;
+    private final MemberRepository memberRepository;
+    private final OauthTokenRepository oauthTokenRepository;
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {

@@ -1,7 +1,11 @@
-from fastapi import HTTPException
 from jose import jwt, JWTError
 from config import settings
 import base64
+from utils.logging_util import LoggingUtil
+from utils.exceptions import TokenValidationError
+
+
+logger = LoggingUtil.get_logger(__name__)
 
 SECRET_KEY = base64.b64decode(settings.jwt_secret_key)
 ALGORITHM = settings.jwt_algorithm
@@ -10,18 +14,21 @@ def verify_email_from_token(authorization: str, email: str):
     try:
         scheme, token = authorization.split()
         if scheme.lower() != "bearer":
-            raise HTTPException(status_code=401, detail="Invalid token.")
+            raise TokenValidationError("Invalid token scheme.")
 
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         token_email = payload.get("email")
 
         if token_email is None:
-            raise HTTPException(status_code=401, detail="Token does not contain email claim")
+            raise TokenValidationError("Token does not contain email claim")
 
         if token_email != email:
-            raise HTTPException(status_code=403, detail="Email in token does not match request parameter")
+            raise TokenValidationError("Email in token does not match request parameter", status_code=403)
 
     except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid JWT token")
+        logger.error("Invalid JWT token")
+        raise TokenValidationError("Invalid JWT token")
+
     except Exception:
-        raise HTTPException(status_code=401, detail="Invalid or missing Authorization header")
+        logger.error("Invalid or missing Authorization header")
+        raise TokenValidationError("Invalid or missing Authorization header")
