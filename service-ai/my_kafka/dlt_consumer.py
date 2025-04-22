@@ -7,8 +7,8 @@ logger = LoggingUtil.get_logger(__name__)
 
 def consume_dlt():
     consumer = KafkaConsumer(
-        settings.kafka_uploaded_recover_topic,
-        settings.kafka_deleted_recover_topic,
+        settings.kafka_upload_recover_topic,
+        settings.kafka_delete_recover_topic,
         bootstrap_servers=[settings.kafka_broker],
         value_deserializer=lambda m: json.loads(m.decode("utf-8")),
         auto_offset_reset='latest',
@@ -16,7 +16,7 @@ def consume_dlt():
         group_id="gloud-dlt-consumer-group"
     )
 
-    logger.info(f"[DLT] Listening to: {settings.kafka_uploaded_recover_topic}, {settings.kafka_deleted_recover_topic}")
+    logger.info(f"[DLT] Listening to: {settings.kafka_upload_recover_topic}, {settings.kafka_delete_recover_topic}")
 
     for message in consumer:
         try:

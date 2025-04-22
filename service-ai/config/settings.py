@@ -1,6 +1,11 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
+    service_host: str
+    service_port: int
+
+    consul_host: str
+
     jwt_secret_key: str
     jwt_algorithm: str
 

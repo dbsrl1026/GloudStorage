@@ -21,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Tag(name = "문서 관리 API", description = "문서 업로드 및 조회 기능을 제공합니다.")
@@ -141,10 +142,12 @@ public class DocumentController {
         return ResponseEntity.ok(result);
     }
 
-    @ValidateEmailClaim
+
     @PostMapping("/retry-vector-db")
-    public ResponseEntity<String> retryVectorDB(@RequestParam Long metadataId, @RequestParam String email) {
-        return documentService.retryVectorDB(metadataId, email);
+    public CompletableFuture<ResponseEntity<String>> retryVectorDB(
+            @RequestParam Long metadataId,
+            @RequestParam String email) {
+        return documentService.retryVectorDBAsync(metadataId, email);
     }
 
 }

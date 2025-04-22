@@ -26,14 +26,13 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<String> Register(@RequestBody MemberDto memberDto) {
-
+    public ResponseEntity<String> Register(@RequestBody MemberDto memberDto) throws InterruptedException {
         authService.Register(memberDto);
 
         return new ResponseEntity<>("Register Success", HttpStatus.OK);
     }
 
-    @PostMapping("/validate")
+    @GetMapping("/validate")
     public ResponseEntity<String> validateToken() {
         // SecurityContextHolder에서 Authentication 객체 가져오기
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

@@ -1,20 +1,18 @@
 package com.gloud.document.service;
 
 
-import com.gloud.document.dto.DeleteResultDto;
-import com.gloud.document.dto.DocumentDetailDto;
-import com.gloud.document.dto.MetadataDto;
-import com.gloud.document.dto.UploadResult;
+import com.gloud.document.dto.*;
 import com.gloud.document.entity.Metadata;
 import com.gloud.document.enums.ProcessingStatus;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.nio.file.AccessDeniedException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public interface DocumentService {
 
@@ -39,7 +37,8 @@ public interface DocumentService {
 
     Metadata getMetadata(Long metadataId);
 
-    ResponseEntity<String> retryVectorDB(Long metadataId, String email);
+    @Async("taskExecutor")
+    CompletableFuture<ResponseEntity<String>> retryVectorDBAsync(Long metadataId, String email);
 
     List<DocumentDetailDto> getDetailsByMetadataIds(List<Long> metadataIds, String email);
 

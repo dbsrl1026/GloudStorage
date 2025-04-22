@@ -19,4 +19,9 @@ public class ErrorResponseUtil {
         ErrorResponse errorResponse = new ErrorResponse(status.value(), message);
         return new ResponseEntity<>(errorResponse, status);
     }
+
+    public ErrorResponse toErrorResponse(HttpStatus httpStatus, String message) {
+        ErrorResponse errorResponse = new ErrorResponse(httpStatus.value(), message);
+        return errorResponse;
+    }
 }

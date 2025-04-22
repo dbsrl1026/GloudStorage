@@ -62,7 +62,6 @@ public class SecurityConfig {
 
     private static final String[] AUTH_BLACKLIST = {
             "/auth/validate"
-            //"login/**"
     };
 
     @Bean
@@ -116,8 +115,8 @@ public class SecurityConfig {
                 )
                 // 접근 권한 설정
                 .authorizeHttpRequests((auth) -> auth
-                        .requestMatchers(AUTH_BLACKLIST).permitAll()
-                        .anyRequest().authenticated()
+                        .requestMatchers(AUTH_BLACKLIST).authenticated()
+                        .anyRequest().permitAll()
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(auth -> auth.baseUri("/oauth2/authorization")) // 기본값

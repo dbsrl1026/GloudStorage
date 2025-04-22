@@ -25,7 +25,7 @@ qdrant = Qdrant(
 )
 
 
-@router.get("/search", response_model=list[SearchResult])
+@router.get("/ai/search", response_model=list[SearchResult])
 def search_documents(
         query: str = Query(..., description="검색할 사용자 질의"),
         email: str = Query(..., description="검색할 대상 email"),

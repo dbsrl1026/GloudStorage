@@ -28,7 +28,7 @@ Answer:
 classifier_chain = classification_prompt | classifier_llm | RunnableLambda(lambda x: x.content.lower())
 
 
-@router.post("/chat", response_model=ChatResponse)
+@router.post("/ai/chat", response_model=ChatResponse)
 def chat_with_documents(payload: ChatRequest, authorization: str = Header(...)):
     verify_email_from_token(authorization, payload.email)
 

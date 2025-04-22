@@ -7,6 +7,7 @@ import com.gloud.document.enums.ContentType;
 import com.gloud.document.enums.ProcessingStatus;
 import com.gloud.document.kafka.DocumentKafkaProducer;
 import com.gloud.document.minio.MinioProperties;
+import com.gloud.document.processor.DocumentAsyncProcessor;
 import com.gloud.document.repository.DirectoryRepository;
 import com.gloud.document.repository.MetadataRepository;
 import com.gloud.document.util.DocumentToPdfConverter;
@@ -28,6 +29,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
@@ -35,7 +37,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.lang.invoke.MethodType;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
@@ -44,6 +45,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 
 @Slf4j
@@ -56,6 +58,7 @@ public class DocumentServiceImpl implements DocumentService {
     private final MetadataRepository metadataRepository;
     private final DirectoryRepository directoryRepository;
     private final DocumentKafkaProducer documentKafkaProducer;
+    private final DocumentAsyncProcessor documentAsyncProcessor;
 
 
     private static final int MAX_UPLOAD_COUNT = 20;
@@ -127,24 +130,7 @@ public class DocumentServiceImpl implements DocumentService {
                     .build();
 
             metadataRepository.save(metadata);
-
-            try (InputStream extractIs = file.getInputStream()) {
-                String text = TextExtractionUtil.extractText(contentType, extractIs);
-                DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-                DocumentKafkaMessage message = DocumentKafkaMessage.builder()
-                        .metadataId(metadata.getMetadataId())
-                        .email(email)
-                        .originalFilename(file.getOriginalFilename())
-                        .contentType(contentType.name())
-                        .textContent(text)
-                        .uploadTime(metadata.getUploadTime().format(formatter))
-                        .build();
-                documentKafkaProducer.uploadPublish(message);
-            } catch (Exception e) {
-                log.warn("Kafka 메시지 발행 또는 텍스트 추출 실패: {}", e.getMessage());
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
-            }
-
+            documentAsyncProcessor.processUploadAsync(metadata, contentType, file);
             return objectName;
         } catch (Exception e) {
             try {
@@ -280,8 +266,7 @@ public class DocumentServiceImpl implements DocumentService {
         } catch (Exception e) {
             log.warn("MinIO deletion failed for metadataId {}: {}", metadataId, e.getMessage());
         }
-
-        documentKafkaProducer.deletePublish(List.of(metadataId));
+        documentAsyncProcessor.processDeleteAsync(List.of(metadataId));
     }
 
     @Override
@@ -331,7 +316,7 @@ public class DocumentServiceImpl implements DocumentService {
             }
         }
 
-        documentKafkaProducer.deletePublish(metadataIds);
+        documentAsyncProcessor.processDeleteAsync(successIds);
 
         return DeleteResultDto.builder()
                 .successIds(successIds)
@@ -455,19 +440,23 @@ public class DocumentServiceImpl implements DocumentService {
         log.info("Metadata ID {} updated to status: {}", metadataId, status);
     }
 
+    @Async("taskExecutor")
     @Override
-    public ResponseEntity<String> retryVectorDB(Long metadataId, String email) {
+    public CompletableFuture<ResponseEntity<String>> retryVectorDBAsync(Long metadataId, String email) {
         Metadata metadata = getMetadata(metadataId);
         if (metadata == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Metadata not found.");
+            return java.util.concurrent.CompletableFuture.completedFuture(
+                    ResponseEntity.status(HttpStatus.NOT_FOUND).body("Metadata not found."));
         }
 
         if (!metadata.getUploaderEmail().equals(email)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Unauthorized access");
+            return java.util.concurrent.CompletableFuture.completedFuture(
+                    ResponseEntity.status(HttpStatus.FORBIDDEN).body("Unauthorized access"));
         }
 
         if (metadata.getProcessingStatus() != ProcessingStatus.FAILED) {
-            return ResponseEntity.badRequest().body("Document is not in FAILED state.");
+            return java.util.concurrent.CompletableFuture.completedFuture(
+                    ResponseEntity.badRequest().body("Document is not in FAILED state."));
         }
 
         try (InputStream is = minioClient.getObject(GetObjectArgs.builder()
@@ -488,9 +477,10 @@ public class DocumentServiceImpl implements DocumentService {
 
             documentKafkaProducer.uploadPublish(message);
             updateProcessingStatus(metadataId, ProcessingStatus.PROCESSING);
-            return ResponseEntity.ok("Retry successful.");
+            return java.util.concurrent.CompletableFuture.completedFuture(ResponseEntity.ok("Retry successful."));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Retry failed: " + e.getMessage());
+            return java.util.concurrent.CompletableFuture.completedFuture(
+                    ResponseEntity.internalServerError().body("Retry failed: " + e.getMessage()));
         }
     }
 
@@ -499,4 +489,6 @@ public class DocumentServiceImpl implements DocumentService {
     public Metadata getMetadata(Long metadataId) {
         return metadataRepository.findById(metadataId).orElse(null);
     }
+
+
 }
