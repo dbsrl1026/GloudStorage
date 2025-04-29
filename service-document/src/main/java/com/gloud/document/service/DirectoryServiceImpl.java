@@ -6,6 +6,7 @@ import com.gloud.document.dto.DirectoryContentDto;
 import com.gloud.document.dto.DirectoryDto;
 import com.gloud.document.entity.Directory;
 import com.gloud.document.entity.Metadata;
+import com.gloud.document.enums.ContentType;
 import com.gloud.document.enums.ProcessingStatus;
 import com.gloud.document.exception.BadRequestException;
 import com.gloud.document.exception.DuplicateDirectoryException;
@@ -61,6 +62,9 @@ public class DirectoryServiceImpl implements DirectoryService {
     @Override
     public DirectoryContentDto getDirectoryContents(String email, Long parentId, String sortBy, String direction,
                                                     ProcessingStatus status, String contentType) {
+        ContentType newContentType = contentType == null ? null : ContentType.valueOf(contentType);
+        List<DirectoryDto> fullPath = getFullPath(parentId, email);
+
         List<Directory> directories = (parentId == null)
                 ? directoryRepository.findByOwnerEmailAndParentIsNull(email)
                 : directoryRepository.findByOwnerEmailAndParent_DirectoryId(email, parentId);
@@ -79,8 +83,8 @@ public class DirectoryServiceImpl implements DirectoryService {
                 predicates.add(cb.equal(root.get("processingStatus"), status));
             }
 
-            if (contentType != null) {
-                predicates.add(cb.equal(root.get("contentType"), contentType.toUpperCase()));
+            if (newContentType != null) {
+                predicates.add(cb.equal(root.get("contentType"), newContentType));
             }
 
             query.orderBy(
@@ -93,6 +97,7 @@ public class DirectoryServiceImpl implements DirectoryService {
         });
 
         return DirectoryContentDto.builder()
+                .fullpath(fullPath)
                 .directories(directories.stream().map(DirectoryMapper::toDto).toList())
                 .documents(documents.stream().map(MetadataDto::fromEntity).toList())
                 .build();
@@ -193,10 +198,14 @@ public class DirectoryServiceImpl implements DirectoryService {
 
         // 2. 해당 디렉토리에 속한 문서 삭제 (위임)
         List<Metadata> files = metadataRepository.findByDirectory(directory);
-        List<Long> ids = files.stream().map(Metadata::getMetadataId).toList();
-        if (!ids.isEmpty()) {
-            documentService.deleteDocuments(ids, directory.getOwnerEmail());
+        if (!files.isEmpty()) {
+            List<Long> ids = files.stream().map(Metadata::getMetadataId).toList();
+            if (!ids.isEmpty()) {
+                documentService.deleteDocuments(ids, directory.getOwnerEmail());
+            }
+
         }
+
 
         // 3. 디렉토리 삭제
         directoryRepository.delete(directory);
@@ -205,6 +214,9 @@ public class DirectoryServiceImpl implements DirectoryService {
 
     @Override
     public List<DirectoryDto> getFullPath(Long directoryId, String email) {
+        if (directoryId == null) {
+            return null;
+        }
         Directory directory = directoryRepository.findById(directoryId)
                 .orElseThrow(() -> new IllegalArgumentException("디렉토리를 찾을 수 없습니다."));
 
@@ -221,5 +233,12 @@ public class DirectoryServiceImpl implements DirectoryService {
         }
 
         return path.stream().map(DirectoryMapper::toDto).toList();
+    }
+
+    @Override
+    public void deleteDirectories(List<Long> directoryIds, String email) {
+        for (Long id : directoryIds) {
+            deleteDirectory(id, email);  // 기존에 있던 단일 삭제 로직 재사용
+        }
     }
 }

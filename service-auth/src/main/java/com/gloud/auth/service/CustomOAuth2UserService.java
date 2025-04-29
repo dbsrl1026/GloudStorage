@@ -87,6 +87,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 Collections.singleton(new SimpleGrantedAuthority(member.getRole().name())),
                 Map.of(
                         "email", member.getEmail(),
+                        "username", member.getUsername(),
                         "memberId", member.getMemberId(),
                         "role", member.getRole().name()
                 ),

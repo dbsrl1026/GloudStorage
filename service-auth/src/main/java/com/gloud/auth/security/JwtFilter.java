@@ -3,24 +3,20 @@ package com.gloud.auth.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gloud.auth.dto.ErrorResponse;
-import com.gloud.auth.dto.TokenDto;
 import com.gloud.auth.repository.RedisTokenRepository;
 import com.gloud.auth.util.ErrorResponseUtil;
 import com.gloud.auth.util.JwtUtil;
 import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.MalformedJwtException;
-import jakarta.annotation.PostConstruct;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import lombok.RequiredArgsConstructor;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
 import org.springframework.security.core.Authentication;
@@ -31,14 +27,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
-import org.springframework.util.AntPathMatcher;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 
 @Component
@@ -47,13 +39,14 @@ import java.util.List;
 public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
-    private final UserDetailsService customUserDetailsService;
+    private final UserDetailsService userDetailsService;
     private final RedisTokenRepository redisTokenRepository; // Redis에서 토큰 확인할 Repository
     private final ErrorResponseUtil errorResponseUtil;
 
     // 해당 path에 포함하는 api만 jwt 검증함
     private static final List<RequestMatcher> excludedPaths = List.of(
-            new AntPathRequestMatcher("/auth/validate")
+            new AntPathRequestMatcher("/auth/validate"),
+            new AntPathRequestMatcher("/auth/me")
 //            new AntPathRequestMatcher("/login/**"), ...
     );
 
@@ -69,15 +62,25 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        String authHeader = request.getHeader("Authorization");
         String email = null;
 
         try {
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                throw new JwtException("Missing or invalid Authorization header");
+            Cookie[] cookies = request.getCookies();
+            if (cookies == null) {
+                throw new JwtException("Missing cookies");
             }
 
-            String token = authHeader.substring(7);
+            String token = null;
+            for (Cookie cookie : cookies) {
+                if ("accessToken".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+
+            if (token == null) {
+                throw new JwtException("Access token not found in cookies");
+            }
 
             String tokenType = jwtUtil.getType(token);
             if (tokenType == null || !"ATK".equals(tokenType)) {
@@ -108,7 +111,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
 
 
-        UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
+        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
         if (userDetails == null) {
             throw new UsernameNotFoundException("User not found");

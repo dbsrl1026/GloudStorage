@@ -3,7 +3,10 @@ package com.gloud.auth.controller;
 
 import com.gloud.auth.dto.MemberDto;
 import com.gloud.auth.dto.TokenDto;
+import com.gloud.auth.security.CustomUserDetails;
 import com.gloud.auth.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,8 +35,30 @@ public class AuthController {
         return new ResponseEntity<>("Register Success", HttpStatus.OK);
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<MemberDto> getCurrentUser() {
+        log.info("/auth/me");
+        // SecurityContextHolder에서 Authentication 객체 가져오기
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        // 권한 정보 확인
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        String email = userDetails.getUsername();
+        String username = userDetails.getMemberName();
+
+        MemberDto memberDto = MemberDto.builder()
+                .email(email)
+                .username(username)
+                .build();
+
+        return ResponseEntity.ok(memberDto);
+
+
+    }
+
     @GetMapping("/validate")
     public ResponseEntity<String> validateToken() {
+        log.info("/auth/validate");
         // SecurityContextHolder에서 Authentication 객체 가져오기
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -44,6 +69,7 @@ public class AuthController {
         // 권한 정보 확인
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         String email = userDetails.getUsername();
+
         Collection<? extends GrantedAuthority> authorities = userDetails.getAuthorities();
 
         // 권한 정보를 사용하여 요청 처리
@@ -51,9 +77,8 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<TokenDto> reissueToken(@RequestHeader("Authorization") String authHeader) {
-
-        TokenDto tokenDto = authService.reissueToken(authHeader);
-        return new ResponseEntity<>(tokenDto, HttpStatus.OK);
+    public ResponseEntity<TokenDto> reissueToken(HttpServletRequest request, HttpServletResponse response) {
+        TokenDto tokenDto = authService.reissueToken(request, response);
+        return ResponseEntity.ok(tokenDto);
     }
 }

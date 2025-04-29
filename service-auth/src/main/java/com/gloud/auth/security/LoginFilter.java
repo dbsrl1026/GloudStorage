@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gloud.auth.dto.LoginRequest;
 import com.gloud.auth.dto.TokenDto;
 import com.gloud.auth.repository.RedisTokenRepository;
+import com.gloud.auth.util.CookieUtil;
 import com.gloud.auth.util.JwtUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.FilterChain;
@@ -31,12 +32,14 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     private final RedisTokenRepository redisTokenRepository;
     private final AuthenticationManager authenticationManager;
     private final ObjectMapper objectMapper;
+    private final CookieUtil cookieUtil;
 
-    public LoginFilter(JwtUtil jwtUtil, RedisTokenRepository redisTokenRepository, AuthenticationManager authenticationManager, ObjectMapper objectMapper) {
+    public LoginFilter(JwtUtil jwtUtil, RedisTokenRepository redisTokenRepository, AuthenticationManager authenticationManager, ObjectMapper objectMapper, CookieUtil cookieUtil) {
         this.jwtUtil = jwtUtil;
         this.redisTokenRepository = redisTokenRepository;
         this.authenticationManager = authenticationManager;
         this.objectMapper = objectMapper;
+        this.cookieUtil = cookieUtil;
         setFilterProcessesUrl("/auth/login");
         super.setAuthenticationManager(authenticationManager);
     }
@@ -76,12 +79,16 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
                 .orElse(null); // 권한이 없는 경우 null 반환
 
 
+
+
         String accesstoken = jwtUtil.createAccessJwt(memberId, email, role);
 
         String refreshtoken = jwtUtil.createRefreshJwt(memberId, email, role);
 
         redisTokenRepository.deleteTokens(email);
         redisTokenRepository.save(email, accesstoken, refreshtoken);
+
+        cookieUtil.addTokenCookies(response, accesstoken, refreshtoken);
 
         TokenDto tokenDto = new TokenDto(email, accesstoken, refreshtoken);
 

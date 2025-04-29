@@ -23,20 +23,22 @@ public class AuthValidationFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getPath().toString();
-        if (path.matches(".*/auth.*") || path.matches(".*/swagger.*") || path.matches(".*/health.*")) {
+        if (path.matches(".*/auth.*")
+                || path.matches(".*/swagger.*")
+                || path.matches(".*/health.*")
+                || path.matches(".*/oauth2.*")
+        ) {
             return chain.filter(exchange); // 우회
-        }
-
-        String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-        if (!authHeader.startsWith("Bearer ")) {
-            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-            return exchange.getResponse().setComplete();
         }
 
         return webClientBuilder.build()
                 .get()
                 .uri("http://service-auth/auth/validate")
-                .header(HttpHeaders.AUTHORIZATION, authHeader)
+                .cookies(cookies -> {
+                    exchange.getRequest().getCookies().forEach((name, values) -> {
+                        values.forEach(cookie -> cookies.add(name, cookie.getValue()));
+                    });
+                })
                 .exchangeToMono(response -> {
                     if (response.statusCode().equals(HttpStatus.UNAUTHORIZED)) {
                         exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);

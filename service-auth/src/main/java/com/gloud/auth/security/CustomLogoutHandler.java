@@ -4,6 +4,7 @@ package com.gloud.auth.security;
 import com.gloud.auth.repository.RedisTokenRepository;
 import com.gloud.auth.util.JwtUtil;
 import io.jsonwebtoken.JwtException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -25,16 +26,42 @@ public class CustomLogoutHandler implements LogoutHandler {
 
     @Override
     public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
-        String authHeader = request.getHeader("Authorization");
-
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new IllegalArgumentException("Missing or invalid Authorization header");
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            throw new JwtException("Missing cookies");
         }
 
-        String token = authHeader.substring(7);
+        String token = null;
+        for (Cookie cookie : cookies) {
+            if ("refreshToken".equals(cookie.getName())) {
+                token = cookie.getValue();
+                break;
+            }
+        }
+
+        if (token == null) {
+            throw new JwtException("Refresh token not found in cookies");
+        }
         String email = jwtUtil.getEmail(token);
 
         redisTokenRepository.deleteTokens(email);
+
+        Cookie accessCookie = new Cookie("accessToken", null);
+        accessCookie.setPath("/");
+        accessCookie.setMaxAge(0);
+        accessCookie.setHttpOnly(true);
+
+        Cookie refreshCookie = new Cookie("refreshToken", null);
+        refreshCookie.setPath("/");
+        refreshCookie.setMaxAge(0);
+        refreshCookie.setHttpOnly(true);
+
+        response.addCookie(accessCookie);
+        response.addCookie(refreshCookie);
+
+        // Removed duplicate cookies declaration
+
+
         log.info("로그아웃 완료: email={}, token={}", email, token);
     }
 }

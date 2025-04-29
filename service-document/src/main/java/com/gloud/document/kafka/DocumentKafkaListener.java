@@ -14,6 +14,7 @@ import com.gloud.document.entity.Metadata;
 import com.gloud.document.service.DocumentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
@@ -24,9 +25,11 @@ import org.springframework.stereotype.Component;
 public class DocumentKafkaListener {
 
     private final DocumentService documentService;
+    private final DocumentStatusTimeoutHandler timeoutHandler;
+
 
     @KafkaListener(
-        topics = "document.completed",
+        topics = "${kafka.topics.completed}",
         groupId = "document-status-handler"
         // No need to manually specify concurrency here; configured globally via application properties
     )
@@ -48,6 +51,7 @@ public class DocumentKafkaListener {
             }
 
             documentService.updateProcessingStatus(message.getMetadataId(), message.getStatus());
+            timeoutHandler.unregister(message.getMetadataId());
             ack.acknowledge(); // 성공 시 커밋
         } catch (Exception e) {
             log.error("Error processing document.completed message: {}", e.getMessage(), e);

@@ -27,6 +27,9 @@ public class MetadataDto {
     @Schema(description = "파일 확장자", example = "PDF")
     private String contentType;
 
+    @Schema(description = "파일 크기 (KB 기준)")
+    private Double fileSize;
+
     @Schema(description = "업로더 이메일", example = "user@example.com")
     private String uploaderEmail;
 
@@ -42,6 +45,7 @@ public class MetadataDto {
                 .originalFilename(metadata.getOriginalFilename())
                 .filePath(metadata.getFilePath())
                 .contentType(metadata.getContentType().name())
+                .fileSize(metadata.getFileSize())
                 .uploaderEmail(metadata.getUploaderEmail())
                 .uploadTime(metadata.getUploadTime())
                 .processingStatus(metadata.getProcessingStatus())

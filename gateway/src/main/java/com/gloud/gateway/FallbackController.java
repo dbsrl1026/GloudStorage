@@ -11,21 +11,23 @@ import reactor.core.publisher.Mono;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.web.bind.annotation.RequestMethod;
+
 @RestController
 @RequestMapping("/internal/fallback")
 public class FallbackController {
 
-    @GetMapping("/auth")
+    @RequestMapping(value = "/auth", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.PATCH})
     public Mono<ResponseEntity<Map<String, Object>>> authFallback() {
         return buildFallbackResponse("인증 서버가 응답하지 않습니다.");
     }
 
-    @GetMapping("/document")
+    @RequestMapping(value = "/document", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.PATCH})
     public Mono<ResponseEntity<Map<String, Object>>> documentFallback() {
         return buildFallbackResponse("문서 서비스가 응답하지 않습니다.");
     }
 
-    @GetMapping("/ai")
+    @RequestMapping(value = "/ai", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.PATCH})
     public Mono<ResponseEntity<Map<String, Object>>> aiFallback() {
         return buildFallbackResponse("AI 서비스가 응답하지 않습니다.");
     }

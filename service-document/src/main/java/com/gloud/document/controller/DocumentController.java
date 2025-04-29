@@ -90,6 +90,15 @@ public class DocumentController {
         return ResponseEntity.ok(result);
     }
 
+    @ValidateEmailClaim
+    @PostMapping("/metadatas")
+    public ResponseEntity<List<MetadataDto>> getDocuments(
+            @RequestBody List<Long> metadataIds,
+            @RequestParam String email) {
+        List<MetadataDto> result = documentService.getMetadataDetails(metadataIds, email);
+        return ResponseEntity.ok(result);
+    }
+
 
     @GetMapping("/{metadataId}")
     @Operation(summary = "문서 상세 조회", description = "문서 메타데이터와 내부 내용을 조회합니다.")
@@ -150,4 +159,13 @@ public class DocumentController {
         return documentService.retryVectorDBAsync(metadataId, email);
     }
 
+    @ValidateEmailClaim
+    @PatchMapping("/{metadataId}/move")
+    public ResponseEntity<Void> moveDocument(
+            @PathVariable Long metadataId,
+            @RequestParam(value = "targetDirectoryId", required = false) Long targetDirectoryId,
+            @RequestParam String email) {
+        documentService.moveDocument(metadataId, targetDirectoryId, email);
+        return ResponseEntity.ok().build();
+    }
 }

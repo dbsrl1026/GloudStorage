@@ -7,6 +7,7 @@ import com.gloud.auth.security.CustomLogoutHandler;
 import com.gloud.auth.security.JwtFilter;
 import com.gloud.auth.security.OAuth2SuccessHandler;
 import com.gloud.auth.service.CustomOAuth2UserService;
+import com.gloud.auth.util.CookieUtil;
 import com.gloud.auth.util.JwtUtil;
 import com.gloud.auth.security.LoginFilter;
 import jakarta.servlet.http.HttpServletResponse;
@@ -48,9 +49,10 @@ public class SecurityConfig {
     private final JwtUtil jwtUtil;
     private final RedisTokenRepository redisTokenRepository;
     private final ObjectMapper objectMapper;
+    private final CookieUtil cookieUtil;
 
     //    @Value("${spring.cors.path}")
-    private List<String> corsPath;
+//    private List<String> corsPath;
 
 
     // PasswordEncoder 설정
@@ -61,7 +63,8 @@ public class SecurityConfig {
 
 
     private static final String[] AUTH_BLACKLIST = {
-            "/auth/validate"
+            "/auth/validate",
+            "/auth/me"
     };
 
     @Bean
@@ -71,14 +74,14 @@ public class SecurityConfig {
 
     @Bean
     public LoginFilter loginFilter(AuthenticationManager authenticationManager) {
-        return new LoginFilter(jwtUtil, redisTokenRepository, authenticationManager, objectMapper);
+        return new LoginFilter(jwtUtil, redisTokenRepository, authenticationManager, objectMapper, cookieUtil);
     }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 // cors 설정
-                .cors(corsConfigurer -> corsConfigurer.configurationSource(corsConfiguration()))
+//                .cors(corsConfigurer -> corsConfigurer.configurationSource(corsConfiguration()))
 
                 // csrf disable
                 .csrf(AbstractHttpConfigurer::disable)
@@ -140,24 +143,24 @@ public class SecurityConfig {
 
         return http.build();
     }
-
-    private CorsConfigurationSource corsConfiguration() {
-        CorsConfiguration configuration = new CorsConfiguration();
-
-
-        configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost*"));
-        configuration.addAllowedOrigin(CorsConfiguration.ALL);
-//        configuration.setAllowedOriginPatterns(corsPath);                 //마지막으로 설정된 setAllowedOriginPatterns 만 적용 TODO : 완성하고 주석풀기
-        configuration.setAllowedMethods(Collections.singletonList("*"));    // POST, GET, PUT ,DELETE 등 모든 메서드 허용
-        configuration.setAllowCredentials(true);                            // 인증 정보 (쿠키, 인증 헤더 등)를 포함한 요청을 허용
-        configuration.setAllowedHeaders(Collections.singletonList("*"));    // 모든 HTTP 요청 헤더 허용
-        configuration.setExposedHeaders(Collections.singletonList("Authorization")); //  클라이언트가 접근할 수 있는 응답 헤더를 설정
-        configuration.setMaxAge(3600L);                                     //  preflight 요청에 대한 응답을 캐시할 시간 : 1시간
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);      // 모든 (/**) 경로에 대해 위에서 정의한 configuration 객체의 CORS 설정을 적용
-
-        return source;
-    }
+//
+//    private CorsConfigurationSource corsConfiguration() {
+//        CorsConfiguration configuration = new CorsConfiguration();
+//
+//
+//        configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost*"));
+//        configuration.addAllowedOrigin(CorsConfiguration.ALL);
+////        configuration.setAllowedOriginPatterns(corsPath);                 //마지막으로 설정된 setAllowedOriginPatterns 만 적용 TODO : 완성하고 주석풀기
+//        configuration.setAllowedMethods(Collections.singletonList("*"));    // POST, GET, PUT ,DELETE 등 모든 메서드 허용
+//        configuration.setAllowCredentials(true);                            // 인증 정보 (쿠키, 인증 헤더 등)를 포함한 요청을 허용
+//        configuration.setAllowedHeaders(Collections.singletonList("*"));    // 모든 HTTP 요청 헤더 허용
+//        configuration.setExposedHeaders(Collections.singletonList("Authorization")); //  클라이언트가 접근할 수 있는 응답 헤더를 설정
+//        configuration.setMaxAge(3600L);                                     //  preflight 요청에 대한 응답을 캐시할 시간 : 1시간
+//
+//        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+//        source.registerCorsConfiguration("/**", configuration);      // 모든 (/**) 경로에 대해 위에서 정의한 configuration 객체의 CORS 설정을 적용
+//
+//        return source;
+//    }
 
 }

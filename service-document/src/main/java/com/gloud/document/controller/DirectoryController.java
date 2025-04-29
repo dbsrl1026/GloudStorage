@@ -41,7 +41,7 @@ public class DirectoryController {
             @RequestParam(defaultValue = "uploadTime") String sortBy, //uploadTime, originalFilename, contentType
             @RequestParam(defaultValue = "desc") String direction,
             @RequestParam(required = false) ProcessingStatus status, //PENDING, PROCESSING, COMPLETED, FAILED
-            @RequestParam(required = false) String contentType  //
+            @RequestParam(required = false) String contentType  //PDF, TXT, MD, DOC, DOCX, HWP, HWPX, CSV, PPT, PPTX
     ) {
         return ResponseEntity.ok(directoryService.getDirectoryContents(email, parentId, sortBy, direction, status, contentType));
     }
@@ -73,6 +73,15 @@ public class DirectoryController {
                                                 @RequestParam String email) {
         directoryService.deleteDirectory(directoryId, email);
         return ResponseEntity.noContent().build();
+    }
+
+    @ValidateEmailClaim
+    @DeleteMapping
+    public ResponseEntity<Void> deleteDirectories(
+            @RequestBody List<Long> directoryIds,
+            @RequestParam String email) {
+        directoryService.deleteDirectories(directoryIds, email);
+        return ResponseEntity.ok().build();
     }
 
     @ValidateEmailClaim

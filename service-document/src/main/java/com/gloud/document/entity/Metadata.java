@@ -44,6 +44,9 @@ public class Metadata {
     @Column(name = "content_type", nullable = false, length = 10)
     private ContentType contentType;
 
+    @Column(name = "file_size")
+    private Double fileSize;
+
     @Column(name = "uploader_email", nullable = false, length = 64)
     private String uploaderEmail;
 

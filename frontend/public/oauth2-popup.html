@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8"/>
+    <title>OAuth 완료</title>
+</head>
+<body>
+<script>
+    (async () => {
+        try {
+            const res = await fetch("/auth/token-json", {
+                credentials: "include"
+            });
+
+            if (res.ok) {
+                if (window.opener) {
+                    window.opener.postMessage({status: "success"}, "*");
+                }
+            } else {
+                if (window.opener) {
+                    window.opener.postMessage({status: "error"}, "*");
+                }
+            }
+        } catch (err) {
+            console.error("OAuth Popup Error:", err);
+            if (window.opener) {
+                window.opener.postMessage({status: "error"}, "*");
+            }
+        } finally {
+            window.close();
+        }
+    })();
+</script>
+</body>
+</html>

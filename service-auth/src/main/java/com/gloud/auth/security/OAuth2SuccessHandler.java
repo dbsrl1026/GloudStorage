@@ -2,15 +2,17 @@ package com.gloud.auth.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gloud.auth.dto.TokenDto;
-import com.gloud.auth.entity.Member;
 import com.gloud.auth.repository.MemberRepository;
 import com.gloud.auth.repository.RedisTokenRepository;
+import com.gloud.auth.util.CookieUtil;
 import com.gloud.auth.util.JwtUtil;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -24,9 +26,10 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     private final JwtUtil jwtUtil;
     private final RedisTokenRepository redisTokenRepository;
-    private final MemberRepository memberRepository;
-    private final ObjectMapper objectMapper;
+    private final CookieUtil cookieUtil;
 
+    @Value("${spring.oauth2.response.redirect-uri}")
+    private String REDIRECT_URI;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
@@ -47,11 +50,8 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         redisTokenRepository.deleteTokens(email);
         redisTokenRepository.save(email, accessToken, refreshToken);
 
-        // 응답 반환 : 리다이렉션 아닌 JSON 반환 : 프론트에서 팝업 방식으로 OAuth 로그인 처리하고 부모창에 메시지로 전달하는 과정 필요
-        TokenDto tokenDto = new TokenDto(email, accessToken, refreshToken);
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
-        response.setStatus(HttpServletResponse.SC_OK);
-        response.getWriter().write(objectMapper.writeValueAsString(tokenDto));
+        cookieUtil.addTokenCookies(response, accessToken, refreshToken);
+
+        response.sendRedirect(REDIRECT_URI);
     }
 }

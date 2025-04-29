@@ -30,6 +30,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 member.getMemberId(),
                 member.getEmail(),
                 member.getPassword(),    // ------------ 비밀번호는 전달만 하고, 검증은 Spring Security가 처리
+                member.getUsername(),
                 List.of(new SimpleGrantedAuthority("ROLE_" + member.getRole().toString())
                 )
         );

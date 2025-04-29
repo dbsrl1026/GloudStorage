@@ -9,6 +9,7 @@ import java.util.List;
 @Setter
 @Builder
 public class DirectoryContentDto {
+    List<DirectoryDto> fullpath;
     List<DirectoryDto> directories;
     List<MetadataDto> documents;
 }

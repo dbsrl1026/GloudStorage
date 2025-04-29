@@ -24,6 +24,8 @@ public class DocumentKafkaProducer {
     private final KafkaTemplate<String, DocumentKafkaMessage> kafkaUploadTemplate;
     private final KafkaTemplate<String, List<Long>> kafkaDeleteTemplate;
     private final MetadataRepository metadataRepository;
+    private final DocumentStatusTimeoutHandler timeoutHandler; // 추가 의존성
+
 
     @Value("${kafka.topics.uploaded}")
     private String UPLOADED_TOPIC;
@@ -42,6 +44,8 @@ public class DocumentKafkaProducer {
     public void uploadPublish(DocumentKafkaMessage message) {
         kafkaUploadTemplate.send(UPLOADED_TOPIC, message);
         log.info("Kafka message published: metadataId={}, email={}", message.getMetadataId(), message.getEmail());
+
+        timeoutHandler.registerPendingUpload(message.getMetadataId());
     }
 
     @Recover
@@ -60,6 +64,7 @@ public class DocumentKafkaProducer {
         try {
             kafkaUploadTemplate.send(UPLOADED_RECOVER_TOPIC, message);
             log.info("Sent to DLT topic {}: metadataId={}", UPLOADED_RECOVER_TOPIC, message.getMetadataId());
+            timeoutHandler.registerPendingUpload(message.getMetadataId());
         } catch (Exception ex) {
             log.error("Failed to send to DLT topic {}: {}", UPLOADED_RECOVER_TOPIC, ex.getMessage());
         }

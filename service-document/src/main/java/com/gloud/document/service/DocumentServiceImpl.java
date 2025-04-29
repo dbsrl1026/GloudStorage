@@ -127,6 +127,7 @@ public class DocumentServiceImpl implements DocumentService {
                     .directory(directory)
                     .uploaderEmail(email)
                     .processingStatus(ProcessingStatus.PROCESSING)
+                    .fileSize(file.getSize() / 1024.0)
                     .build();
 
             metadataRepository.save(metadata);
@@ -178,6 +179,7 @@ public class DocumentServiceImpl implements DocumentService {
                         .filePath(path)
                         .build());
             } catch (Exception e) {
+                log.error(e.getMessage(), e);
                 uploaded.add(UploadResult.builder()
                         .originalFilename(file.getOriginalFilename())
                         .success(false)
@@ -351,10 +353,12 @@ public class DocumentServiceImpl implements DocumentService {
         }
 
         return DocumentDetailDto.builder()
+                .metadataId(metadataId)
                 .originalFilename(metadata.getOriginalFilename())
                 .contentType(metadata.getContentType().name())
                 .uploadTime(metadata.getUploadTime())
                 .filePath(metadata.getFilePath())
+                .fileSize(metadata.getFileSize())
                 .directoryId(metadata.getDirectory() != null ? metadata.getDirectory().getDirectoryId() : null)
                 .previewPath(previewUrl)
                 .build();
@@ -369,10 +373,12 @@ public class DocumentServiceImpl implements DocumentService {
                 .map(m -> {
                     // 기존 getDocumentDetail 참고해 텍스트 요약 또는 preview 링크 포함
                     return DocumentDetailDto.builder()
+                            .metadataId(m.getMetadataId())
                             .originalFilename(m.getOriginalFilename())
                             .contentType(m.getContentType().name())
                             .uploadTime(m.getUploadTime())
                             .filePath(m.getFilePath())
+                            .fileSize(m.getFileSize())
                             .directoryId(m.getDirectory() != null ? m.getDirectory().getDirectoryId() : null)
                             .previewPath(m.getPreviewPath())
                             .build();
@@ -490,5 +496,35 @@ public class DocumentServiceImpl implements DocumentService {
         return metadataRepository.findById(metadataId).orElse(null);
     }
 
+    @Override
+    public void moveDocument(Long metadataId, Long targetDirectoryId, String email) {
+        Metadata metadata = metadataRepository.findById(metadataId)
+                .orElseThrow(() -> new EntityNotFoundException("Cannot find metadata"));
+
+        if (!metadata.getUploaderEmail().equals(email)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Unauthorized access");
+        }
+
+        Directory newDirectory = null;
+        if (targetDirectoryId != null) {
+            newDirectory = directoryRepository.findById(targetDirectoryId)
+                    .orElseThrow(() -> new EntityNotFoundException("Target directory not found"));
+            if (!newDirectory.getOwnerEmail().equals(email)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Unauthorized move target");
+            }
+        }
+
+        metadata.setDirectory(newDirectory);
+        metadataRepository.save(metadata);
+    }
+
+    @Override
+    public List<MetadataDto> getMetadataDetails(List<Long> metadataIds, String email) {
+        List<Metadata> metadatas = metadataRepository.findAllById(metadataIds);
+        return metadatas.stream()
+                .filter(m -> m.getUploaderEmail().equals(email))  // 소유자 검증
+                .map(MetadataDto::fromEntity)
+                .toList();
+    }
 
 }

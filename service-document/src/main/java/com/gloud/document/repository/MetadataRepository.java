@@ -15,7 +15,7 @@ import java.util.List;
 public interface MetadataRepository extends JpaRepository<Metadata, Long>, JpaSpecificationExecutor<Metadata> {
 
 
-    @Query("SELECT m FROM Metadata m WHERE m.uploaderEmail = :email AND LOWER(m.originalFilename) LIKE LOWER(CONCAT('%', :query, '%'))")
+    @Query("SELECT m FROM Metadata m WHERE m.uploaderEmail = :email AND m.originalFilename ILIKE CONCAT('%', :query, '%')")
     List<Metadata> searchByTitleLike(@Param("email") String email, @Param("query") String query);
 
     List<Metadata> findByDirectory(Directory directory);

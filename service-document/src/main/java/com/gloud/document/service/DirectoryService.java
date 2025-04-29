@@ -22,4 +22,6 @@ public interface DirectoryService {
     void deleteDirectory(Long directoryId, String email);
 
     List<DirectoryDto> getFullPath(Long directoryId, String email);
+
+    void deleteDirectories(List<Long> directoryIds, String email);
 }

@@ -2,6 +2,8 @@ package com.gloud.document.aspect;
 
 import com.gloud.document.annotation.ValidateEmailClaim;
 import com.gloud.document.util.JwtUtil;
+import io.jsonwebtoken.JwtException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -27,9 +29,19 @@ public class EmailValidationAspect {
 
         // 1. JWT에서 email 추출
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-        String token = request.getHeader("Authorization");
-        String emailFromToken = jwtUtil.getEmail(token);
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            throw new JwtException("Missing cookies");
+        }
 
+        String token = null;
+        for (Cookie cookie : cookies) {
+            if ("accessToken".equals(cookie.getName())) {
+                token = cookie.getValue();
+                break;
+            }
+        }
+        String emailFromToken = jwtUtil.getEmail(token);
         // 2. 파라미터에서 email 찾기
         Object[] args = joinPoint.getArgs();
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();

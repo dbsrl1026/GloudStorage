@@ -43,4 +43,8 @@ public interface DocumentService {
     List<DocumentDetailDto> getDetailsByMetadataIds(List<Long> metadataIds, String email);
 
     List<MetadataDto> searchDocumentsByTitle(String email, String query);
+
+    void moveDocument(Long metadataId, Long targetDirectoryId, String email);
+
+    List<MetadataDto> getMetadataDetails(List<Long> metadataIds, String email);
 }

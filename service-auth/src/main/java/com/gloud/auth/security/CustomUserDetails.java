@@ -10,15 +10,17 @@ public class CustomUserDetails implements UserDetails {
     private final Long memberId;
     private final String email;
     private final String password;
+    private final String memberName;
     private final List<GrantedAuthority> authorities;
 
     //private MemberDTO memberDTO;                                                  //---------------------- 추가
 
-    public CustomUserDetails(Long memberId, String email, String password, List<GrantedAuthority> authorities) {
+    public CustomUserDetails(Long memberId, String email, String password, String memberName, List<GrantedAuthority> authorities) {
         this.memberId = memberId;
         this.email = email;
         this.password = password;
         this.authorities = authorities;
+        this.memberName = memberName;
                                     //---------------------- 추가
     }
 
@@ -40,6 +42,10 @@ public class CustomUserDetails implements UserDetails {
     }
     public Long getMemberId() {
         return memberId;
+    }
+
+    public String getMemberName() {
+        return memberName;
     }
 
     @Override

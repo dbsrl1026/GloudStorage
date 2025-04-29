@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query, Header
+from fastapi import APIRouter, Query, Header, Request
 from starlette.responses import JSONResponse
 
 from dto import SearchResult
@@ -27,12 +27,12 @@ qdrant = Qdrant(
 
 @router.get("/ai/search", response_model=list[SearchResult])
 def search_documents(
-        query: str = Query(..., description="검색할 사용자 질의"),
-        email: str = Query(..., description="검색할 대상 email"),
-        authorization: str = Header(...),
-        top_k: int = 5
+    request: Request,
+    query: str = Query(..., description="검색할 사용자 질의"),
+    email: str = Query(..., description="검색할 대상 email"),
+    top_k: int = 5
 ):
-    verify_email_from_token(authorization, email)
+    verify_email_from_token(request, email)
 
     reranked = hybrid_search_and_rerank(query=query, email=email, top_k=top_k)
     if not reranked:

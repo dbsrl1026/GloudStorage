@@ -7,10 +7,15 @@ import com.gloud.auth.entity.Member;
 import com.gloud.auth.exception.UserAlreadyExistsException;
 import com.gloud.auth.repository.MemberRepository;
 import com.gloud.auth.repository.RedisTokenRepository;
+import com.gloud.auth.util.CookieUtil;
 import com.gloud.auth.util.JwtUtil;
 import io.jsonwebtoken.JwtException;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +28,7 @@ public class AuthServiceImpl implements AuthService {
     private final MemberRepository memberRepository;
     private final JwtUtil jwtUtil;
     private final RedisTokenRepository redisTokenRepository;
+    private final CookieUtil cookieUtil;
 
     @Override
     public void Register(MemberDto memberDto) {
@@ -43,27 +49,36 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public TokenDto reissueToken(String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new JwtException("Missing or invalid Authorization header");
+    public TokenDto reissueToken(HttpServletRequest request, HttpServletResponse response) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            throw new JwtException("Missing cookies");
         }
 
-        String token = authHeader.substring(7);
+        String token = null;
+        for (Cookie cookie : cookies) {
+            if ("refreshToken".equals(cookie.getName())) {
+                token = cookie.getValue();
+                break;
+            }
+        }
+
+        if (token == null) {
+            throw new JwtException("Refresh token not found in cookies");
+        }
 
         String tokenType = jwtUtil.getType(token);
-        if (tokenType == null || !"RTK".equals(tokenType)) {
+        if (!"RTK".equals(tokenType)) {
             throw new JwtException("Invalid or missing token type");
         }
 
-        //  Redis 화이트리스트 확인 (존재하지 않으면 비정상 토큰)
         String email = jwtUtil.getEmail(token);
-        String storedAccessToken = redisTokenRepository.getRefreshToken(email);
+        String storedRefreshToken = redisTokenRepository.getRefreshToken(email);
 
-        if (storedAccessToken == null || !storedAccessToken.equals(token)) {
-            throw new JwtException("Access token not found in whitelist (Redis)");
+        if (storedRefreshToken == null || !storedRefreshToken.equals(token)) {
+            throw new JwtException("Refresh token not found in whitelist (Redis)");
         }
 
-        //  JWT 유효성 검증
         jwtUtil.validateToken(token);
 
         Long memberId = jwtUtil.getmemberId(token);
@@ -72,15 +87,17 @@ public class AuthServiceImpl implements AuthService {
         String newAccessToken = jwtUtil.createAccessJwt(memberId, email, role);
         String newRefreshToken = jwtUtil.createRefreshJwt(memberId, email, role);
 
-
         redisTokenRepository.deleteTokens(email);
         redisTokenRepository.save(email, newAccessToken, newRefreshToken);
-        TokenDto tokenDto = TokenDto.builder()
+
+        cookieUtil.addTokenCookies(response, newAccessToken, newRefreshToken);
+
+        return TokenDto.builder()
                 .email(email)
                 .accessToken(newAccessToken)
                 .refreshToken(newRefreshToken)
                 .build();
-
-        return tokenDto;
     }
+
+
 }
