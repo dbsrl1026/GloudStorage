@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 @Component
 public class CookieUtil {
 
@@ -33,10 +35,22 @@ public class CookieUtil {
         refreshCookie.setPath("/");
         refreshCookie.setMaxAge(REFRESH_EXPIRATION_TIME); // 예: 7일
 
+        String csrfToken = UUID.randomUUID().toString();
+
+        // Set-Cookie: csrfToken=<value>; Path=/auth; SameSite=Lax (or None if HTTPS)
+        Cookie csrfCookie = new Cookie("csrfToken", csrfToken);
+        csrfCookie.setHttpOnly(false);  // JS에서 읽기 가능해야 함
+        csrfCookie.setPath("/");
+        csrfCookie.setSecure(false); // HTTPS 환경에선 true
+        csrfCookie.setMaxAge(REFRESH_EXPIRATION_TIME); // 1시간
+
+
+
 //        accessCookie.setSecure(true); // HTTPS 전용
 //        accessCookie.setDomain("yourdomain.com"); // 프론트 주소와 동일해야 함
         response.addCookie(accessCookie);
         response.addCookie(refreshCookie);
+        response.addCookie(csrfCookie);
         response.setHeader("Access-Control-Allow-Credentials", "true");
     }
 }

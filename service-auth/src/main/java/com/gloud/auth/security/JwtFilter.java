@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
 import org.springframework.security.core.Authentication;
@@ -31,7 +32,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 
 import java.io.IOException;
+import java.nio.file.AccessDeniedException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -62,6 +66,17 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        String csrfHeader = request.getHeader("X-CSRF-Token");
+        String csrfCookie = Arrays.stream(Optional.ofNullable(request.getCookies()).orElse(new Cookie[0]))
+                .filter(c -> "csrfToken".equals(c.getName()))
+                .map(Cookie::getValue)
+                .findFirst()
+                .orElse(null);
+
+        if (csrfHeader == null || !csrfHeader.equals(csrfCookie)) {
+            throw new AccessDeniedException("Unauthorized");
+        }
+
         String email = null;
 
         try {
@@ -82,8 +97,8 @@ public class JwtFilter extends OncePerRequestFilter {
                 throw new JwtException("Access token not found in cookies");
             }
 
-            String tokenType = jwtUtil.getType(token);
-            if (tokenType == null || !"ATK".equals(tokenType)) {
+            String tokenType = jwtUtil.getAudience(token);
+            if (tokenType == null || !"access".equals(tokenType)) {
                 throw new JwtException("Invalid or missing token type");
             }
 

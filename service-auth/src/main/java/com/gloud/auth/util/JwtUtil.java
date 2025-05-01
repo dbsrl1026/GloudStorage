@@ -9,7 +9,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 
-import java.security.Key;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 import java.util.Date;
 import java.util.UUID;
 
@@ -17,50 +22,38 @@ import java.util.UUID;
 public class JwtUtil {
 
 
-    private final Key SECRET_KEY;
+    private final PrivateKey privateKey;
+    private final PublicKey publicKey;
     private final long ACCESS_EXPIRATION_TIME;
     private final long REFRESH_EXPIRATION_TIME;
 
     public JwtUtil(
-            @Value("${spring.jwt.secret}") String secretKey,
+            @Value("${spring.jwt.private-key}") String privateKeyStr,
+            @Value("${spring.jwt.public-key}") String publicKeyStr,
             @Value("${spring.jwt.expiration_time.access}") long AccTokenExpTime,
             @Value("${spring.jwt.expiration_time.refresh}") long RefTokenExpTime
     ) {
-        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
-        this.SECRET_KEY = Keys.hmacShaKeyFor(keyBytes);
+        try {
+            byte[] privateBytes = Base64.getDecoder().decode(privateKeyStr);
+            byte[] publicBytes = Base64.getDecoder().decode(publicKeyStr);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            this.privateKey = keyFactory.generatePrivate(new PKCS8EncodedKeySpec(privateBytes));
+            this.publicKey = keyFactory.generatePublic(new X509EncodedKeySpec(publicBytes));
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to load RSA keys", e);
+        }
         this.ACCESS_EXPIRATION_TIME = AccTokenExpTime * 60 * 1000L;
         this.REFRESH_EXPIRATION_TIME = RefTokenExpTime * 60 * 1000L;
     }
 
-//    public boolean validateToken(String token) {
-//        try {
-//            Jwts.parserBuilder().setSigningKey(SECRET_KEY).build().parseClaimsJws(token);
-//            return true;
-//        } catch (SecurityException | MalformedJwtException e) {
-//            System.out.println("Invalid JWT Token" + e.getMessage());
-//        } catch (ExpiredJwtException e) {
-//            System.out.println("Expired Token" + e.getMessage());
-//        } catch (UnsupportedJwtException e) {
-//            System.out.println("Unsupported Token" + e.getMessage());
-//        } catch (IllegalArgumentException e) {
-//            System.out.println("IllegalArgument claims Token" + e.getMessage());
-//        } catch (SignatureException e) {
-//            System.out.println("Signature Error" + e.getMessage());
-//        } catch (JwtException e) {
-//            System.out.println("JWT Exception" + e.getMessage());
-//        }
-//        return false;
-//    }
-
-
     public void validateToken(String token) {
-        Jwts.parserBuilder().setSigningKey(SECRET_KEY).build().parseClaimsJws(token);
+        Jwts.parserBuilder().setSigningKey(publicKey).build().parseClaimsJws(token);
     }
 
 
     public Claims parseClaims(String token) {
         try {
-            return Jwts.parserBuilder().setSigningKey(SECRET_KEY).build().parseClaimsJws(token).getBody();
+            return Jwts.parserBuilder().setSigningKey(publicKey).build().parseClaimsJws(token).getBody();
         } catch (ExpiredJwtException e) {
             return e.getClaims();
         }
@@ -78,8 +71,9 @@ public class JwtUtil {
         return parseClaims(token).get("role", String.class);
     }
 
-    public String getType(String token) {
-        return parseClaims(token).get("type", String.class);
+
+    public String getAudience(String token) {
+        return parseClaims(token).getAudience();
     }
 
     public String createAccessJwt(Long memberId, String email, String role) {
@@ -87,17 +81,16 @@ public class JwtUtil {
         claims.put("memberId", memberId);
         claims.put("role", role);
         claims.put("email", email);
-        claims.put("type", "ATK");
 
 
         return Jwts.builder()
-//                .setIssuer("https://example.com")
-//                .setAudience("https://api.example.com")
                 .setSubject(email)
+                .setIssuer("gloud-auth")
+                .setAudience("access")
                 .setClaims(claims)
                 .setIssuedAt(new Date())                                                //기본 클레임(토큰발급시간)
                 .setExpiration(new Date(System.currentTimeMillis() + ACCESS_EXPIRATION_TIME))
-                .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
+                .signWith(privateKey, SignatureAlgorithm.RS256)
                 .compact();
     }
 
@@ -106,16 +99,15 @@ public class JwtUtil {
         claims.put("memberId", memberId);
         claims.put("role", role);
         claims.put("email", email);
-        claims.put("type", "RTK");
 
         return Jwts.builder()
-//                .setIssuer("https://example.com")
-//                .setAudience("https://api.example.com")
                 .setSubject(email)
+                .setIssuer("gloud-auth")
+                .setAudience("refresh")
                 .setClaims(claims)
                 .setIssuedAt(new Date())                                                //기본 클레임(토큰발급시간)
                 .setExpiration(new Date(System.currentTimeMillis() + REFRESH_EXPIRATION_TIME))
-                .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
+                .signWith(privateKey, SignatureAlgorithm.RS256)
                 .setId(UUID.randomUUID().toString()) // jti
                 .compact();
     }

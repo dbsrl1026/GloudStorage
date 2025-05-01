@@ -62,6 +62,6 @@ public class CustomLogoutHandler implements LogoutHandler {
         // Removed duplicate cookies declaration
 
 
-        log.info("로그아웃 완료: email={}, token={}", email, token);
+        log.info("로그아웃 완료: email={}", email);
     }
 }

@@ -67,8 +67,8 @@ public class AuthServiceImpl implements AuthService {
             throw new JwtException("Refresh token not found in cookies");
         }
 
-        String tokenType = jwtUtil.getType(token);
-        if (!"RTK".equals(tokenType)) {
+        String tokenType = jwtUtil.getAudience(token);
+        if (!"refresh".equals(tokenType)) {
             throw new JwtException("Invalid or missing token type");
         }
 

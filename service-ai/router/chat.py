@@ -10,6 +10,7 @@ from chat.chat_answer import handle_answer_request
 from chat.chat_document import handle_document_request
 from utils.logging_util import LoggingUtil
 from fastapi.responses import StreamingResponse
+from utils.preprocess_util import check_for_prompt_injection
 import asyncio
 import json
 
@@ -37,6 +38,16 @@ classifier_chain = classification_prompt | classifier_llm | RunnableLambda(lambd
 async def chat_with_documents(request: Request, payload: ChatRequest):
     logger.info(f"Received chat request: {payload}")
     verify_email_from_token(request, payload.email)
+
+    blocked, cleaned_query = check_for_prompt_injection(payload.query)
+    payload.query = cleaned_query
+
+    if blocked:
+        logger.warning(f"⚠️ Prompt injection attempt detected: {cleaned_query}")
+        return ChatResponse(
+            answer="❌ 보안 정책에 의해 해당 요청은 처리되지 않습니다.",
+            documents=[]
+        )
 
     async def event_stream():
         # Step 1: 질의 분류

@@ -6,6 +6,23 @@ const axiosInstance = axios.create({
     withCredentials: true,
 });
 
+function getCookie(name: string): string | null {
+    const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
+    return match ? decodeURIComponent(match[2]) : null;
+}
+
+
+axiosInstance.interceptors.request.use(
+    (config) => {
+        const csrfToken = getCookie("csrfToken");
+        if (csrfToken) {
+            config.headers["X-CSRF-Token"] = csrfToken;
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
+
 // 자동 토큰 재발급 인터셉터
 axiosInstance.interceptors.response.use(
     (response) => response,

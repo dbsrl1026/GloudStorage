@@ -5,6 +5,7 @@ import com.gloud.auth.dto.MemberDto;
 import com.gloud.auth.dto.TokenDto;
 import com.gloud.auth.security.CustomUserDetails;
 import com.gloud.auth.service.AuthService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Optional;
 
 @Slf4j
 @RestController
@@ -78,6 +81,16 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<TokenDto> reissueToken(HttpServletRequest request, HttpServletResponse response) {
+        String csrfHeader = request.getHeader("X-CSRF-Token");
+        String csrfCookie = Arrays.stream(Optional.ofNullable(request.getCookies()).orElse(new Cookie[0]))
+                .filter(c -> "csrfToken".equals(c.getName()))
+                .map(Cookie::getValue)
+                .findFirst()
+                .orElse(null);
+
+        if (csrfHeader == null || !csrfHeader.equals(csrfCookie)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        }
         TokenDto tokenDto = authService.reissueToken(request, response);
         return ResponseEntity.ok(tokenDto);
     }
