@@ -1,0 +1,48 @@
+name: Deploy gateway to Kubernetes
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'gateway/**'
+
+env:
+  IMAGE_NAME: ${{ secrets.DOCKER_IMAGE_PREFIX }}gateway
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build and Push Docker Image
+      run: |
+        docker build -t $IMAGE_NAME:latest ./gateway
+        docker push $IMAGE_NAME:latest
+
+    - name: Set up Kubeconfig
+      run: |
+        mkdir -p ~/.kube
+        echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > ~/.kube/config
+
+    - name: Create ConfigMap for application.yml
+      run: |
+        kubectl delete configmap gateway-config --ignore-not-found
+        kubectl create configmap gateway-config \
+          --from-literal=application.yml="${{ secrets.APP_YML_GATEWAY }}"
+
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl apply -f k8s/gateway-deployment.yaml
