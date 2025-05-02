@@ -1,8 +1,7 @@
 HELP.md
-*.gradle
 *.properties
 
-**/libs/
+
 **/.gradle/
 **/app/
 **/build/
@@ -10,7 +9,7 @@ HELP.md
 !**/gradle/wrapper/gradle-wrapper.properties
 !**/src/main/**/build/
 !**/src/test/**/build/
-!**/settings.gradle
+
 
 ### STS ###
 .apt_generated
