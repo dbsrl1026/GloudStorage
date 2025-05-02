@@ -7,8 +7,8 @@ from utils.logging_util import LoggingUtil
 logger = LoggingUtil.get_logger(__name__)
 
 producer = KafkaProducer(
-    bootstrap_servers=settings.kafka_broker,
-    value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+    bootstrap_servers=settings.kafka_broker.split(","),
+    value_serializer=lambda v: json.dumps(v).encode("utf-8")
 )
 
 @retry(wait=wait_exponential(multiplier=2, min=2, max=10), stop=stop_after_attempt(3))

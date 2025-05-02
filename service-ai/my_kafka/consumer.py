@@ -13,7 +13,7 @@ def consume_kafka():
     consumer = KafkaConsumer(
         settings.kafka_upload_topic,
         settings.kafka_delete_topic,
-        bootstrap_servers=[settings.kafka_broker],
+        bootstrap_servers=settings.kafka_broker.split(","),
         value_deserializer=lambda m: json.loads(m.decode("utf-8")),
         auto_offset_reset='latest',
         enable_auto_commit=False,

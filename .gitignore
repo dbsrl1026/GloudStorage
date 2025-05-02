@@ -1,14 +1,16 @@
 HELP.md
 *.gradle
 *.properties
-*.yml
+
 **/libs/
 **/.gradle/
 **/app/
 **/build/
 !**/gradle/wrapper/gradle-wrapper.jar
+!**/gradle/wrapper/gradle-wrapper.properties
 !**/src/main/**/build/
 !**/src/test/**/build/
+!**/settings.gradle
 
 ### STS ###
 .apt_generated

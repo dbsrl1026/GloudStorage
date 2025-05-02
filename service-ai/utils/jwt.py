@@ -5,10 +5,9 @@ from utils.logging_util import LoggingUtil
 from utils.exceptions import TokenValidationError
 from fastapi import Request
 
-
 logger = LoggingUtil.get_logger(__name__)
 
-SECRET_KEY = base64.b64decode(settings.jwt_secret_key)
+PUBLIC_KEY = base64.b64decode(settings.jwt_public_key).decode("utf-8")
 ALGORITHM = settings.jwt_algorithm
 
 def verify_email_from_token(request: Request, email: str):
@@ -17,7 +16,7 @@ def verify_email_from_token(request: Request, email: str):
         if not token:
             raise TokenValidationError("Missing access token cookie")
 
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, PUBLIC_KEY, algorithms=[ALGORITHM])
         token_email = payload.get("email")
 
         if token_email is None:

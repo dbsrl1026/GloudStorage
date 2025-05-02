@@ -6,7 +6,7 @@ class Settings(BaseSettings):
 
     consul_host: str
 
-    jwt_secret_key: str
+    jwt_public_key: str
     jwt_algorithm: str
 
     kafka_broker: str

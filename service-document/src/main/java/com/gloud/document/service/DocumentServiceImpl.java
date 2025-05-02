@@ -6,14 +6,20 @@ import com.gloud.document.entity.Metadata;
 import com.gloud.document.enums.ContentType;
 import com.gloud.document.enums.ProcessingStatus;
 import com.gloud.document.kafka.DocumentKafkaProducer;
-import com.gloud.document.minio.MinioProperties;
+
 import com.gloud.document.processor.DocumentAsyncProcessor;
 import com.gloud.document.repository.DirectoryRepository;
 import com.gloud.document.repository.MetadataRepository;
 import com.gloud.document.util.DocumentToPdfConverter;
 import com.gloud.document.util.TextExtractionUtil;
-import io.minio.*;
-import io.minio.http.Method;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
+import java.time.Duration;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -53,8 +59,9 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 public class DocumentServiceImpl implements DocumentService {
 
-    private final MinioClient minioClient;
-    private final MinioProperties properties;
+    private final S3Client s3Client;
+    private final S3Presigner s3Presigner;
+    private final String bucketName;
     private final MetadataRepository metadataRepository;
     private final DirectoryRepository directoryRepository;
     private final DocumentKafkaProducer documentKafkaProducer;
@@ -93,29 +100,23 @@ public class DocumentServiceImpl implements DocumentService {
                 throw new IllegalArgumentException("Invalid file: content type or extension is missing.");
             }
 
-            // 1. Upload original to MinIO
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(properties.getBucket())
-                            .object(objectName)
-                            .stream(is, file.getSize(), -1)
-                            .contentType(contentTypeHeader)
-                            .build()
-            );
+            // 1. Upload original to S3
+            s3Client.putObject(PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(objectName)
+                    .contentType(contentTypeHeader)
+                    .build(), RequestBody.fromInputStream(is, file.getSize()));
 
             // 2. Convert to preview PDF
             previewPdf = DocumentToPdfConverter.convertToPdf(contentType, file.getInputStream(), file.getOriginalFilename());
             previewObjectName = objectName.replaceFirst("documents/", "previews/").replaceAll("\\.[^.]+$", ".pdf");
 
             try (InputStream previewIs = new FileInputStream(previewPdf)) {
-                minioClient.putObject(
-                        PutObjectArgs.builder()
-                                .bucket(properties.getBucket())
-                                .object(previewObjectName)
-                                .stream(previewIs, previewPdf.length(), -1)
-                                .contentType("application/pdf")
-                                .build()
-                );
+                s3Client.putObject(PutObjectRequest.builder()
+                        .bucket(bucketName)
+                        .key(previewObjectName)
+                        .contentType("application/pdf")
+                        .build(), RequestBody.fromInputStream(previewIs, previewPdf.length()));
             }
 
             // 3. Save metadata
@@ -135,17 +136,15 @@ public class DocumentServiceImpl implements DocumentService {
             return objectName;
         } catch (Exception e) {
             try {
-                minioClient.removeObject(
-                        RemoveObjectArgs.builder()
-                                .bucket(properties.getBucket())
-                                .object(objectName)
-                                .build());
+                s3Client.deleteObject(DeleteObjectRequest.builder()
+                        .bucket(bucketName)
+                        .key(objectName)
+                        .build());
                 if (previewObjectName != null) {
-                    minioClient.removeObject(
-                            RemoveObjectArgs.builder()
-                                    .bucket(properties.getBucket())
-                                    .object(previewObjectName)
-                                    .build());
+                    s3Client.deleteObject(DeleteObjectRequest.builder()
+                            .bucket(bucketName)
+                            .key(previewObjectName)
+                            .build());
                 }
             } catch (Exception removeEx) {
                 e.addSuppressed(removeEx);
@@ -246,27 +245,24 @@ public class DocumentServiceImpl implements DocumentService {
         }
 
         try {
-            minioClient.removeObject(
-                    RemoveObjectArgs.builder()
-                            .bucket(properties.getBucket())
-                            .object(objectName)
-                            .build()
-            );
+            s3Client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(objectName)
+                    .build());
 
             String previewPath = metadata.getPreviewPath();
             if (previewPath != null) {
                 try {
-                    minioClient.removeObject(
-                            RemoveObjectArgs.builder()
-                                    .bucket(properties.getBucket())
-                                    .object(previewPath)
-                                    .build());
+                    s3Client.deleteObject(DeleteObjectRequest.builder()
+                            .bucket(bucketName)
+                            .key(previewPath)
+                            .build());
                 } catch (Exception e) {
                     log.warn("Preview file deletion failed for metadataId {}: {}", metadataId, e.getMessage());
                 }
             }
         } catch (Exception e) {
-            log.warn("MinIO deletion failed for metadataId {}: {}", metadataId, e.getMessage());
+            log.warn("S3 deletion failed for metadataId {}: {}", metadataId, e.getMessage());
         }
         documentAsyncProcessor.processDeleteAsync(List.of(metadataId));
     }
@@ -297,24 +293,23 @@ public class DocumentServiceImpl implements DocumentService {
             }
 
             try {
-                minioClient.removeObject(RemoveObjectArgs.builder()
-                        .bucket(properties.getBucket())
-                        .object(metadata.getFilePath())
+                s3Client.deleteObject(DeleteObjectRequest.builder()
+                        .bucket(bucketName)
+                        .key(metadata.getFilePath())
                         .build());
-
                 String previewPath = metadata.getPreviewPath();
                 if (previewPath != null) {
                     try {
-                        minioClient.removeObject(RemoveObjectArgs.builder()
-                                .bucket(properties.getBucket())
-                                .object(previewPath)
+                        s3Client.deleteObject(DeleteObjectRequest.builder()
+                                .bucket(bucketName)
+                                .key(previewPath)
                                 .build());
                     } catch (Exception e) {
                         log.warn("Preview file deletion failed for metadataId {}: {}", id, e.getMessage());
                     }
                 }
             } catch (Exception e) {
-                log.warn("MinIO deletion failed for metadataId {}: {}", id, e.getMessage());
+                log.warn("S3 deletion failed for metadataId {}: {}", id, e.getMessage());
             }
         }
 
@@ -339,13 +334,15 @@ public class DocumentServiceImpl implements DocumentService {
         String previewUrl = null;
         if (previewPath != null) {
             try {
-                previewUrl = minioClient.getPresignedObjectUrl(
-                        GetPresignedObjectUrlArgs.builder()
-                                .bucket(properties.getBucket())
-                                .object(previewPath)
-                                .method(Method.GET)
-                                .expiry(300)
+                PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(
+                        GetObjectPresignRequest.builder()
+                                .getObjectRequest(GetObjectRequest.builder()
+                                        .bucket(bucketName)
+                                        .key(previewPath)
+                                        .build())
+                                .signatureDuration(Duration.ofMinutes(5))
                                 .build());
+                previewUrl = presignedRequest.url().toString();
             } catch (Exception e) {
                 log.warn("Presigned URL 생성 실패: {}", e.getMessage());
                 // 실패해도 전체 흐름은 유지
@@ -407,13 +404,12 @@ public class DocumentServiceImpl implements DocumentService {
         String objectName = metadata.getFilePath();
 
         try {
-            InputStream is = minioClient.getObject(GetObjectArgs.builder()
-                    .bucket(properties.getBucket())
-                    .object(objectName)
+            ResponseInputStream<GetObjectResponse> is = s3Client.getObject(GetObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(objectName)
                     .build());
 
             byte[] fileBytes = IOUtils.toByteArray(is);  // Apache Commons IO
-
 
             String contentType = metadata.getContentType().getMimeType();
             String encodedFilename = URLEncoder.encode(metadata.getOriginalFilename(), StandardCharsets.UTF_8)
@@ -465,9 +461,9 @@ public class DocumentServiceImpl implements DocumentService {
                     ResponseEntity.badRequest().body("Document is not in FAILED state."));
         }
 
-        try (InputStream is = minioClient.getObject(GetObjectArgs.builder()
-                .bucket(properties.getBucket())
-                .object(metadata.getFilePath())
+        try (ResponseInputStream<GetObjectResponse> is = s3Client.getObject(GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key(metadata.getFilePath())
                 .build())) {
 
             DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;

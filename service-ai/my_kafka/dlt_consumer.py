@@ -9,7 +9,7 @@ def consume_dlt():
     consumer = KafkaConsumer(
         settings.kafka_upload_recover_topic,
         settings.kafka_delete_recover_topic,
-        bootstrap_servers=[settings.kafka_broker],
+        bootstrap_servers=settings.kafka_broker.split(","),
         value_deserializer=lambda m: json.loads(m.decode("utf-8")),
         auto_offset_reset='latest',
         enable_auto_commit=False,
