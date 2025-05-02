@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  labels:
+    app: gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gateway
+  template:
+    metadata:
+      labels:
+        app: gateway
+    spec:
+      containers:
+        - name: gateway
+          image: yungi1026/gateway:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8610
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config
+              readOnly: true
+          env:
+            - name: SPRING_CONFIG_LOCATION
+              value: "file:/app/config/application.yml"
+      volumes:
+        - name: config-volume
+          configMap:
+            name: gateway-config

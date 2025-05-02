@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-document
+  labels:
+    app: service-document
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-document
+  template:
+    metadata:
+      labels:
+        app: service-document
+    spec:
+      containers:
+        - name: service-document
+          image: yungi1026/service-document:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8612
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config
+              readOnly: true
+          env:
+            - name: SPRING_CONFIG_LOCATION
+              value: "file:/app/config/application.properties"
+      volumes:
+        - name: config-volume
+          configMap:
+            name: service-document-config

@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-ai
+  labels:
+    app: service-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-ai
+  template:
+    metadata:
+      labels:
+        app: service-ai
+    spec:
+      containers:
+        - name: service-ai
+          image: yungi1026/service-ai:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8613
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config
+              readOnly: true
+          env:
+            - name: DOTENV_CONFIG_PATH
+              value: "/app/config/.env"
+      volumes:
+        - name: config-volume
+          configMap:
+            name: service-ai-config
