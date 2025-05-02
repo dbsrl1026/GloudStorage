@@ -64,7 +64,7 @@ dependencies {
     implementation 'org.postgresql:postgresql:42.7.1' //db
 
     //minio
-    implementation 'io.minio:minio:8.5.12'
+//    implementation 'io.minio:minio:8.5.12'
 
     implementation 'software.amazon.awssdk:s3:2.25.3'
     implementation 'software.amazon.awssdk:auth:2.25.3'
@@ -98,8 +98,6 @@ dependencies {
     implementation 'com.aspose:aspose-words:24.3:jdk17'
     implementation 'com.aspose:aspose-slides:24.3:jdk16'
 
-    // Mockito 관련 의존성
-    testImplementation 'org.mockito:mockito-core:4.0.0'
 
     //kafka
     implementation 'org.springframework.kafka:spring-kafka'

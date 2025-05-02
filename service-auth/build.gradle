@@ -81,8 +81,6 @@ dependencies {
     //redis
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
-    // Mockito 관련 의존성
-    testImplementation 'org.mockito:mockito-core:4.0.0'
 
 
     implementation 'org.springframework.cloud:spring-cloud-starter-consul-discovery'
