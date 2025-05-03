@@ -1,7 +1,8 @@
 HELP.md
 *.properties
 
-
+terraform-vpc/
+ansible/
 **/.gradle/
 **/app/
 **/build/
