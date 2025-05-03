@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>OAuth 리디렉션 처리</title>
+</head>
+<body>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const provider = params.get("provider");
+
+  if (provider) {
+    window.location.href = `/auth/oauth2/authorization/${provider}`;
+  } else {
+    document.body.innerText = "잘못된 접근입니다. provider가 없습니다.";
+  }
+</script>
+</body>
+</html>

@@ -1,10 +1,16 @@
 HELP.md
-.gradle
-**/.gradle
+*.properties
+
+terraform-vpc/
+ansible/
+**/.gradle/
+**/app/
 **/build/
 !**/gradle/wrapper/gradle-wrapper.jar
+!**/gradle/wrapper/gradle-wrapper.properties
 !**/src/main/**/build/
 !**/src/test/**/build/
+
 
 ### STS ###
 .apt_generated
@@ -36,3 +42,32 @@ HELP.md
 
 ### VS Code ###
 **/.vscode/
+**/.env
+
+
+### REACT ###
+
+# Logs
+**/logs
+**/*.log
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/pnpm-debug.log*
+**/lerna-debug.log*
+
+**/node_modules
+**/dist
+**/dist-ssr
+**/*.local
+
+# Editor directories and files
+**/.vscode/*
+**/!.vscode/extensions.json
+**/.idea
+**/.DS_Store
+**/*.suo
+**/*.ntvs*
+**/*.njsproj
+**/*.sln
+**/*.sw?

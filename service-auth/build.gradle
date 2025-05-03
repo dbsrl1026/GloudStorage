@@ -1,0 +1,93 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.4.4'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.gloud'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+// 개발 환경에서 자동 리로드를 활성화
+tasks.withType(JavaCompile) {
+    options.fork = true
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:2024.0.1"
+    }
+}
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    //Spring Boot : Web
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    //Spring Boot : AOP
+    implementation 'org.aspectj:aspectjweaver:1.9.19'  					// 최신 버전 사용
+    implementation 'org.springframework.boot:spring-boot-starter-aop'  // Spring AOP 지원
+
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    //Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    //SpringBoot : JPA
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.hibernate.orm:hibernate-core:6.1.0.Final'
+
+    //Spring security & OAuth2
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+    testImplementation 'org.springframework.security:spring-security-test'
+
+    //swagger
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.0.2'
+    implementation 'org.hibernate.validator:hibernate-validator:8.0.0.Final'
+
+
+    // Core JJWT 기능 (parser, builder 등)
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+
+    // Signature 처리 (HMAC, RSA 등)
+    implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
+
+    // Base64 디코딩 등 Jackson 기반
+    implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+    //db
+    implementation 'org.postgresql:postgresql:42.7.1' //db
+
+    //redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+
+
+    implementation 'org.springframework.cloud:spring-cloud-starter-consul-discovery'
+
+
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

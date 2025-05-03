@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-auth
+  labels:
+    app: service-auth
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-auth
+  template:
+    metadata:
+      labels:
+        app: service-auth
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: 10.0.3.89
+      containers:
+        - name: service-auth
+          image: yungi1026/service-auth:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8611
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config
+              readOnly: true
+          env:
+            - name: SPRING_CONFIG_LOCATION
+              value: "file:/app/config/application.properties"
+      volumes:
+        - name: config-volume
+          configMap:
+            name: service-auth-config
+

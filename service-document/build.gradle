@@ -1,0 +1,115 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.4.4'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.gloud'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+// 개발 환경에서 자동 리로드를 활성화
+tasks.withType(JavaCompile) {
+    options.fork = true
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url 'https://artifact.aspose.com/repo/' }
+}
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:2024.0.1"
+    }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    //Spring Boot : Web
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    //Spring Boot : AOP
+    implementation 'org.aspectj:aspectjweaver:1.9.19'  					// 최신 버전 사용
+    implementation 'org.springframework.boot:spring-boot-starter-aop'  // Spring AOP 지원
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    //Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    //SpringBoot : JPA
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.hibernate.orm:hibernate-core:6.1.0.Final'
+    //swagger
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.0.2'
+    implementation 'org.hibernate.validator:hibernate-validator:8.0.0.Final'
+
+    //rdb
+    implementation 'org.postgresql:postgresql:42.7.1' //db
+
+    //minio
+//    implementation 'io.minio:minio:8.5.12'
+
+    implementation 'software.amazon.awssdk:s3:2.25.3'
+    implementation 'software.amazon.awssdk:auth:2.25.3'
+    implementation 'software.amazon.awssdk:regions:2.25.3'
+
+    // Core JJWT 기능 (parser, builder 등)
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+
+    // Signature 처리 (HMAC, RSA 등)
+    implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
+
+    // Base64 디코딩 등 Jackson 기반
+    implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+    // Apache POI for Word/Excel/PPT
+    implementation 'org.apache.poi:poi:5.2.5'
+    implementation 'org.apache.poi:poi-ooxml:5.2.5'
+    implementation 'org.apache.poi:poi-scratchpad:5.2.5'
+
+    // PDFBox
+    implementation 'org.apache.pdfbox:pdfbox:2.0.30'
+
+    // HWP, HWPX
+    implementation 'kr.dogfoot:hwplib:1.1.8'
+    implementation 'kr.dogfoot:hwpxlib:1.0.5'
+
+    // pdf 변환
+    implementation 'com.itextpdf:itextpdf:5.5.13.4'
+
+    //convert to pdf
+    implementation 'com.aspose:aspose-words:24.3:jdk17'
+    implementation 'com.aspose:aspose-slides:24.3:jdk16'
+
+
+    //kafka
+    implementation 'org.springframework.kafka:spring-kafka'
+    //실패시 재시도
+    implementation 'org.springframework.retry:spring-retry'
+
+    implementation 'org.springframework.cloud:spring-cloud-starter-consul-discovery'
+
+
+    implementation files('libs/hwp2hwpx-1.0.0.jar')
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
