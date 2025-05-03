@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - 'service-ai/**'
+      - 'k8s/service-ai/**'
+      - 'k8s/service-ai-deployment.yaml'
 
 env:
   IMAGE_NAME: ${{ secrets.DOCKER_IMAGE_PREFIX }}service-ai
@@ -46,3 +48,5 @@ jobs:
     - name: Deploy to Kubernetes
       run: |
         kubectl apply -f k8s/service-ai-deployment.yaml
+        kubectl apply -f k8s/service-ai/service.yaml
+        kubectl apply -f k8s/service-ai/hpa.yaml
