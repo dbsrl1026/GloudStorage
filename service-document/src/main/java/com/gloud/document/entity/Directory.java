@@ -27,7 +27,7 @@ public class Directory {
     @JoinColumn(name = "parent_id")
     private Directory parent;
 
-    @Column(name = "owner_email", nullable = false)
+    @Column(name = "owner_email", nullable = false, unique = true)
     private String ownerEmail; // 사용자 구분
 
     @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
