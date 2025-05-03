@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - 'service-document/**'
+      - 'k8s/service-document/**'
+      - 'k8s/service-document-deployment.yaml'
 
 env:
   IMAGE_NAME: ${{ secrets.DOCKER_IMAGE_PREFIX }}service-document
@@ -46,3 +48,5 @@ jobs:
     - name: Deploy to Kubernetes
       run: |
         kubectl apply -f k8s/service-document-deployment.yaml
+        kubectl apply -f k8s/service-document/service.yaml
+        kubectl apply -f k8s/service-document/hpa.yaml
