@@ -14,6 +14,8 @@ spec:
       labels:
         app: service-ai
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: 10.0.4.83
       containers:
         - name: service-ai
           image: yungi1026/service-ai:latest

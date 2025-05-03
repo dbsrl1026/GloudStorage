@@ -14,6 +14,8 @@ spec:
       labels:
         app: service-document
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: 10.0.3.50
       containers:
         - name: service-document
           image: yungi1026/service-document:latest

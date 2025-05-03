@@ -14,6 +14,8 @@ spec:
       labels:
         app: gateway
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: 10.0.2.251
       containers:
         - name: gateway
           image: yungi1026/gateway:latest
