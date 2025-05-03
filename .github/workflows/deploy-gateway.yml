@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'gateway/**'
+      - 'k8s/gateway-deployment.yaml'
 
 env:
   IMAGE_NAME: ${{ secrets.DOCKER_IMAGE_PREFIX }}gateway
