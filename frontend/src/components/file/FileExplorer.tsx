@@ -26,7 +26,7 @@ export interface MetadataDto {
     directoryId?: number;
 }
 
-interface DocumentDetailDto {
+export interface DocumentDetailDto {
     metadataId: number;
     originalFilename: string;
     fileSize: number;
@@ -45,12 +45,11 @@ interface FileExplorerProps {
     searchedDocumentIds: number[] | null;
     setSearchedDocumentIds: (ids: number[] | null) => void;
     currentDirectoryId: number | null;
-    setCurrentDirectoryId: (id: number | null) => void;
-    onFolderClick: (directoryId: number) => void;
+    onFolderClick: (directoryId: number | null) => void;
     refreshFlag: boolean;
 }
 
-const FileExplorer = ({ searchQuery, setSearchQuery, onSelectDocument, setSelectedDocumentPath, searchedDocumentIds, setSearchedDocumentIds, currentDirectoryId, setCurrentDirectoryId, onFolderClick, refreshFlag }: FileExplorerProps) => {
+const FileExplorer = ({ searchQuery, setSearchQuery, onSelectDocument, setSelectedDocumentPath, searchedDocumentIds, setSearchedDocumentIds, currentDirectoryId, onFolderClick, refreshFlag }: FileExplorerProps) => {
     const {user} = useAuthStore();
     const { toggleSidebar } = useSidebarStore();
     const [directories, setDirectories] = useState<DirectoryDto[]>([]);

@@ -2,6 +2,7 @@ import React from "react";
 import { useAuthStore } from "../../stores/authStore";
 import axios from "../../services/axios";
 import ConfirmModal from "./ConfirmModal";
+import {DirectoryDto} from "./FileExplorer.tsx";
 
 interface DocumentDetailDto {
   metadataId: number;
@@ -9,7 +10,6 @@ interface DocumentDetailDto {
   contentType: string;
   uploadTime: string;
   fileSize: number;
-  filePath: string;
   previewPath: string;
   directoryId: number;
 }

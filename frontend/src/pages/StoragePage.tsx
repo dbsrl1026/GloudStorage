@@ -3,13 +3,16 @@ import Header from "../components/layout/Header";
 import Sidebar from "../components/layout/Sidebar";
 import FileExplorer from "../components/file/FileExplorer";
 import FileDetailsPanel from "../components/file/FileDetailsPanel";
-import {useEffect, useState} from "react";
+import {useState} from "react";
+import {DirectoryDto} from "../components/file/FileExplorer";
+import {DocumentDetailDto} from "../components/file/FileExplorer";
+
 
 const StoragePage = () => {
     const { isSidebarOpen } = useSidebarStore();
     const [searchQuery, setSearchQuery] = useState("");
-    const [selectedDocumentDetail, setSelectedDocumentDetail] = useState(null);
-    const [selectedDocumentPath, setSelectedDocumentPath] = useState([]);
+    const [selectedDocumentDetail, setSelectedDocumentDetail] = useState<DocumentDetailDto | null>(null);
+    const [selectedDocumentPath, setSelectedDocumentPath] = useState<DirectoryDto[]>([]);
     const [searchedDocumentIds, setSearchedDocumentIds] = useState<number[] | null>(null);
     const [currentDirectoryId, setCurrentDirectoryId] = useState<number | null>(null);
     const [refreshFlag, setRefreshFlag] = useState(false);
