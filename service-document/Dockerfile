@@ -1,7 +1,11 @@
 FROM eclipse-temurin:17-jdk AS builder
+
+# 캐시 디렉토리 변경
+ENV GRADLE_USER_HOME=/tmp/.gradle
+
 WORKDIR /app
 COPY . .
-RUN ./gradlew build -x test
+RUN ./gradlew build -x test --no-daemon
 
 FROM eclipse-temurin:17-jdk
 WORKDIR /app
