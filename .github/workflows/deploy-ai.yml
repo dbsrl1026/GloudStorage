@@ -41,12 +41,15 @@ jobs:
 
     - name: Create ConfigMap for .env
       run: |
+        echo "${{ secrets.ENV_AI }}" > .env
         kubectl delete configmap service-ai-config --ignore-not-found
-        kubectl create configmap service-ai-config \
-          --from-literal=.env="${{ secrets.ENV_AI }}"
+        kubectl create configmap service-ai-config --from-file=.env
 
     - name: Deploy to Kubernetes
       run: |
         kubectl apply -f k8s/service-ai-deployment.yaml
         kubectl apply -f k8s/service-ai/service.yaml
         kubectl apply -f k8s/service-ai/hpa.yaml
+        
+    - name: Clean up .env
+      run: rm -f .env
