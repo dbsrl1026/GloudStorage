@@ -50,3 +50,6 @@ jobs:
         kubectl apply -f k8s/service-ai-deployment.yaml
         kubectl apply -f k8s/service-ai/service.yaml
         kubectl apply -f k8s/service-ai/hpa.yaml
+        
+    - name: Clean up .env
+      run: rm -f .env
