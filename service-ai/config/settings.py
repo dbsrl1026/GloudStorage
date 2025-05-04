@@ -1,3 +1,5 @@
+import os
+
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
@@ -29,6 +31,7 @@ class Settings(BaseSettings):
     bm25_index_path: str
 
     class Config:
-        env_file = ".env"
+        # env_file = ".env"
+        env_file = os.environ.get("DOTENV_CONFIG_PATH", ".env")
 
 settings = Settings()
