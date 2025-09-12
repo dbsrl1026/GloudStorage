@@ -1,6 +1,6 @@
 # 글라우드 = 글 + 클라우드
 
-PPT[https://prezi.com/view/bBepCzVCF64ARkJPOVwB/?referral_token=7wwYoFlnB3FN]
+[PPT](https://prezi.com/view/bBepCzVCF64ARkJPOVwB/?referral_token=7wwYoFlnB3FN)
 
 LangChain기반 AI 문서 검색 및 관리 클라우드 스토리지
 
